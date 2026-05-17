@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TripCollective — Join or Sign In</title>
+  <link rel="stylesheet" href="styles/global.css">
+  <style>
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── LEFT PANEL — Visual ── */
+    .auth-left {
+      flex: 1;
+      position: relative;
+      background: linear-gradient(160deg, #2C2038 0%, #1a1228 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 40px 48px;
+      overflow: hidden;
+      min-height: 100vh;
+    }
+
+    /* Gradient orbs */
+    .auth-left::before {
+      content: '';
+      position: absolute;
+      width: 500px; height: 500px;
+      top: -100px; left: -100px;
+      background: radial-gradient(circle, rgba(232,133,106,0.25), transparent 65%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .auth-left::after {
+      content: '';
+      position: absolute;
+      width: 400px; height: 400px;
+      bottom: -80px; right: -80px;
+      background: radial-gradient(circle, rgba(168,159,200,0.2), transparent 65%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .auth-left-content { position: relative; z-index: 1; }
+
+    /* Logo in left panel */
+    .auth-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      margin-bottom: auto;
+    }
+
+    .auth-logo-icon {
+      width: 38px; height: 38px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      box-shadow: 0 4px 16px rgba(232,133,106,0.4);
+    }
+
+    .auth-logo-text {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: white;
+    }
+
+    /* Big headline in left panel */
+    .auth-headline {
+      font-family: var(--font-display);
+      font-size: clamp(2.4rem, 3.5vw, 3.6rem);
+      font-weight: 300;
+      color: white;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+
+    .auth-headline em {
+      font-style: italic;
+      background: linear-gradient(135deg, var(--primary), var(--secondary) 50%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .auth-sub {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.7;
+      max-width: 340px;
+      margin-bottom: 40px;
+    }
+
+    /* Floating testimonial cards */
+    .testimonial-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .testimonial-card {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 16px 18px;
+      backdrop-filter: blur(8px);
+      animation: float1 6s ease-in-out infinite;
+    }
+
+    .testimonial-card:nth-child(2) {
+      animation: float2 7s ease-in-out 1s infinite;
+      margin-left: 20px;
+    }
+
+    .testimonial-text {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.85);
+      line-height: 1.6;
+      margin-bottom: 10px;
+      font-style: italic;
+    }
+
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .testimonial-avatar {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6rem;
+      font-weight: 600;
+      color: white;
+    }
+
+    .testimonial-name {
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.6);
+    }
+
+    .testimonial-source {
+      margin-left: auto;
+      font-size: 0.62rem;
+      background: rgba(232,133,106,0.2);
+      color: var(--peach);
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    /* ── RIGHT PANEL — Form ── */
+    .auth-right {
+      width: 480px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 48px;
+      background: var(--cream);
+      overflow-y: auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Tab switcher */
+    .auth-tabs {
+      display: flex;
+      background: var(--muted);
+      border-radius: var(--radius-full);
+      padding: 4px;
+      margin-bottom: 32px;
+    }
+
+    .auth-tab {
+      flex: 1;
+      padding: 9px;
+      text-align: center;
+      border-radius: var(--radius-full);
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      transition: all 0.2s ease;
+      font-family: var(--font-body);
+    }
+
+    .auth-tab.active {
+      background: white;
+      color: var(--text);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Form header */
+    .auth-form-title {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .auth-form-sub {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    /* Social buttons */
+    .social-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .btn-social {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 11px 20px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: white;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      font-family: var(--font-body);
+      transition: all 0.2s;
+    }
+
+    .btn-social:hover {
+      background: var(--muted);
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .btn-social svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    /* Divider */
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .auth-divider-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .auth-divider-text {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* Form panels */
+    .auth-panel { display: none; }
+    .auth-panel.active { display: block; }
+
+    /* Password strength */
+    .password-strength {
+      margin-top: 6px;
+      display: none;
+    }
+
+    .password-strength.visible { display: block; }
+
+    .strength-bar {
+      height: 3px;
+      border-radius: 3px;
+      background: var(--border);
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+
+    .strength-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease, background 0.3s ease;
+      width: 0%;
+    }
+
+    .strength-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    /* Terms */
+    .auth-terms {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-top: 16px;
+      text-align: center;
+    }
+
+    .auth-terms a {
+      color: var(--primary);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    /* Bottom switch */
+    .auth-switch {
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 24px;
+    }
+
+    .auth-switch button {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-weight: 500;
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 0.82rem;
+    }
+
+    .auth-switch button:hover { text-decoration: underline; }
+
+    /* Input with icon */
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
+
+    .input-wrap .form-input {
+      padding-left: 38px;
+    }
+
+    /* Show password toggle */
+    .input-toggle {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      padding: 4px;
+    }
+
+    /* Success state */
+    .auth-success {
+      display: none;
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .auth-success.visible { display: block; }
+
+    .success-icon {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: rgba(43,161,118,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      margin: 0 auto 16px;
+    }
+
+    /* Forgot password */
+    .forgot-link {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-align: right;
+      margin-top: -10px;
+      margin-bottom: 18px;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .forgot-link:hover { color: var(--primary); }
+
+    /* Back to landing */
+    .back-link {
+      position: absolute;
+      top: 24px;
+      left: 48px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .back-link:hover { color: var(--text); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      body { flex-direction: column; overflow: auto; }
+      .auth-left { min-height: 280px; padding: 32px; }
+      .auth-right { width: 100%; padding: 32px 24px; }
+      .auth-headline { font-size: 2.2rem; }
+      .testimonial-cards { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── LEFT PANEL ── -->
+<div class="auth-left">
+  <div class="auth-left-content">
+
+    <a href="landing.html" class="auth-logo" style="margin-bottom:60px;display:inline-flex">
+      <div class="auth-logo-icon">🧭</div>
+      <span class="auth-logo-text">TripCollective</span>
+    </a>
+
+    <h1 class="auth-headline">
+      Travel planned<br>
+      with people<br>
+      you <em>trust.</em>
+    </h1>
+
+    <p class="auth-sub">
+      Trusted recommendations from the world's best sources — and the friends who've actually been there.
+    </p>
+
+    <div class="testimonial-cards">
+      <div class="testimonial-card">
+        <div class="testimonial-text">
+          "Finally stopped the 47-tab planning spiral. Everything in one place, with sources I actually trust."
+        </div>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar" style="background:var(--primary)">JM</div>
+          <span class="testimonial-name">Jessica M. · Rome trip, 2025</span>
+          <span class="testimonial-source">★ 4.9</span>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-text">
+          "Our group of 8 planned Bali in two weeks. Everyone had input and nobody argued about the itinerary."
+        </div>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar" style="background:var(--accent)">KL</div>
+          <span class="testimonial-name">Kai L. · Bali trip, 2026</span>
+          <span class="testimonial-source">★ 5.0</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── RIGHT PANEL ── -->
+<div class="auth-right">
+
+  <a href="landing.html" class="back-link">← Back</a>
+
+  <!-- Tab switcher -->
+  <div class="auth-tabs">
+    <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Log in</button>
+    <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Get started</button>
+  </div>
+
+  <!-- ── LOGIN PANEL ── -->
+  <div class="auth-panel active" id="panel-login">
+
+    <h2 class="auth-form-title">Welcome back</h2>
+    <p class="auth-form-sub">Good to see you again. Where are we going next?</p>
+
+    <!-- Social -->
+    <div class="social-buttons">
+      <button class="btn-social" onclick="handleSocial('Google')">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <button class="btn-social" onclick="handleSocial('Apple')">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+          <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+        </svg>
+        Continue with Apple
+      </button>
+    </div>
+
+    <div class="auth-divider">
+      <div class="auth-divider-line"></div>
+      <span class="auth-divider-text">or continue with email</span>
+      <div class="auth-divider-line"></div>
+    </div>
+
+    <!-- Email form -->
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <div class="input-wrap">
+        <span class="input-icon">✉️</span>
+        <input class="form-input" type="email" placeholder="you@example.com" id="login-email">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:8px">
+      <label class="form-label">Password</label>
+      <div class="input-wrap">
+        <span class="input-icon">🔒</span>
+        <input class="form-input" type="password" placeholder="Your password" id="login-password">
+        <button class="input-toggle" onclick="togglePassword('login-password', this)">Show</button>
+      </div>
+    </div>
+
+    <div class="forgot-link" onclick="showForgot()">Forgot password?</div>
+
+    <button class="btn btn-primary w-full" style="width:100%" onclick="handleLogin()">
+      Log in →
+    </button>
+
+    <div class="auth-switch">
+      Don't have an account?
+      <button onclick="switchTab('signup')">Get started free</button>
+    </div>
+
+  </div>
+
+  <!-- ── SIGNUP PANEL ── -->
+  <div class="auth-panel" id="panel-signup">
+
+    <h2 class="auth-form-title">Join TripCollective</h2>
+    <p class="auth-form-sub">Free forever. No credit card needed.</p>
+
+    <!-- Social -->
+    <div class="social-buttons">
+      <button class="btn-social" onclick="handleSocial('Google')">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Sign up with Google
+      </button>
+
+      <button class="btn-social" onclick="handleSocial('Apple')">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+          <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+        </svg>
+        Sign up with Apple
+      </button>
+    </div>
+
+    <div class="auth-divider">
+      <div class="auth-divider-line"></div>
+      <span class="auth-divider-text">or sign up with email</span>
+      <div class="auth-divider-line"></div>
+    </div>
+
+    <!-- Signup form -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label class="form-label">First name</label>
+        <input class="form-input" type="text" placeholder="Sarah" id="signup-first">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Last name</label>
+        <input class="form-input" type="text" placeholder="Connor" id="signup-last">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <div class="input-wrap">
+        <span class="input-icon">✉️</span>
+        <input class="form-input" type="email" placeholder="you@example.com" id="signup-email">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <div class="input-wrap">
+        <span class="input-icon">🔒</span>
+        <input class="form-input" type="password" placeholder="Min. 8 characters"
+          id="signup-password" oninput="checkStrength(this.value)">
+        <button class="input-toggle" onclick="togglePassword('signup-password', this)">Show</button>
+      </div>
+      <div class="password-strength" id="strength-bar">
+        <div class="strength-bar">
+          <div class="strength-fill" id="strength-fill"></div>
+        </div>
+        <div class="strength-label" id="strength-label">Enter a password</div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary w-full" style="width:100%;margin-top:4px" onclick="handleSignup()">
+      Create account →
+    </button>
+
+    <p class="auth-terms">
+      By creating an account you agree to our
+      <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+    </p>
+
+    <div class="auth-switch">
+      Already have an account?
+      <button onclick="switchTab('login')">Log in</button>
+    </div>
+
+  </div>
+
+  <!-- ── SUCCESS STATE ── -->
+  <div class="auth-success" id="auth-success">
+    <div class="success-icon">✅</div>
+    <h3 class="display display-md" style="margin-bottom:8px">You're in!</h3>
+    <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:24px;line-height:1.6">
+      Welcome to TripCollective. Let's start planning something amazing.
+    </p>
+    <button class="btn btn-primary btn-lg" onclick="window.location='dashboard.html'">
+      Go to dashboard →
+    </button>
+  </div>
+
+</div>
+
+<script>
+  function switchTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    document.getElementById('panel-' + tab).classList.add('active');
+    document.getElementById('auth-success').classList.remove('visible');
+  }
+
+  function handleSocial(provider) {
+    // Placeholder — will connect to Supabase auth
+    alert(`${provider} login will be connected when we set up Supabase! For now, try the email form.`);
+  }
+
+  function handleLogin() {
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    if (!email || !password) {
+      shake(document.querySelector('#panel-login .btn-primary'));
+      return;
+    }
+    // Placeholder — will connect to Supabase
+    showSuccess();
+  }
+
+  function handleSignup() {
+    const first = document.getElementById('signup-first').value;
+    const email = document.getElementById('signup-email').value;
+    const password = document.getElementById('signup-password').value;
+    if (!first || !email || !password) {
+      shake(document.querySelector('#panel-signup .btn-primary'));
+      return;
+    }
+    // Placeholder — will connect to Supabase
+    showSuccess();
+  }
+
+  function showSuccess() {
+    document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('auth-success').classList.add('visible');
+  }
+
+  function togglePassword(id, btn) {
+    const input = document.getElementById(id);
+    if (input.type === 'password') {
+      input.type = 'text';
+      btn.textContent = 'Hide';
+    } else {
+      input.type = 'password';
+      btn.textContent = 'Show';
+    }
+  }
+
+  function checkStrength(value) {
+    const bar = document.getElementById('strength-bar');
+    const fill = document.getElementById('strength-fill');
+    const label = document.getElementById('strength-label');
+    bar.classList.toggle('visible', value.length > 0);
+
+    let score = 0;
+    if (value.length >= 8) score++;
+    if (/[A-Z]/.test(value)) score++;
+    if (/[0-9]/.test(value)) score++;
+    if (/[^A-Za-z0-9]/.test(value)) score++;
+
+    const levels = [
+      { pct: '25%', color: '#DD382C', text: 'Too weak' },
+      { pct: '50%', color: '#F2B08A', text: 'Could be stronger' },
+      { pct: '75%', color: '#EEA62B', text: 'Getting there' },
+      { pct: '100%', color: '#2BA176', text: 'Strong password ✓' },
+    ];
+
+    const level = levels[Math.max(0, score - 1)];
+    fill.style.width = level.pct;
+    fill.style.background = level.color;
+    label.textContent = level.text;
+    label.style.color = level.color;
+  }
+
+  function shake(el) {
+    el.style.animation = 'none';
+    el.offsetHeight;
+    el.style.animation = 'shake 0.4s ease';
+    setTimeout(() => el.style.animation = '', 400);
+  }
+
+  function showForgot() {
+    alert('Password reset will be connected when we set up Supabase!');
+  }
+
+  // Add shake animation
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+    }
+  `;
+  document.head.appendChild(style);
+</script>
+
+</body>
+</html>

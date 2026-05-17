@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TripCollective — Dashboard</title>
+  <link rel="stylesheet" href="styles/global.css">
+  <style>
+    /* ── PAGE-SPECIFIC STYLES ── */
+    .page-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+
+    .page-header p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* Stat Cards Row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 768px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .page-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-ambience"></div>
+
+<!-- ── NAVIGATION ── -->
+<nav class="nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-icon">🧭</div>
+    <span class="nav-logo-text">TripCollective</span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html"          class="nav-link active">Dashboard</a>
+    <a href="trip-planner.html"   class="nav-link">Trip Planner</a>
+    <a href="explore-map.html"    class="nav-link">Explore Map</a>
+    <a href="community.html"      class="nav-link">Community</a>
+    <a href="saved-guides.html"   class="nav-link">Saved Guides</a>
+  </div>
+  <div class="nav-avatar" title="Profile">SC</div>
+</nav>
+
+<div class="page-wrapper">
+<main class="main-content">
+
+  <!-- ── PAGE HEADER ── -->
+  <div class="page-header animate-fade-up">
+    <div>
+      <h1 class="display display-xl">Your Adventures</h1>
+      <p>Plan, explore, and relive every journey from one place.</p>
+    </div>
+    <button class="btn btn-primary btn-lg" onclick="openNewTripModal()">
+      ＋ New Trip
+    </button>
+  </div>
+
+  <!-- ── STAT CARDS ── -->
+  <div class="stats-row animate-fade-up animate-fade-up-1">
+
+    <div class="stat-card" onclick="scrollToSection('upcoming')">
+      <div class="stat-card-bar" style="background:var(--status-upcoming)"></div>
+      <div class="stat-card-label">Upcoming</div>
+      <div class="stat-card-number" style="color:var(--status-upcoming)">1</div>
+      <div class="stat-card-sub">Next: Bali in 38 days</div>
+    </div>
+
+    <div class="stat-card" onclick="scrollToSection('ongoing')">
+      <div class="stat-card-bar" style="background:var(--status-ongoing)"></div>
+      <div class="stat-card-label">Ongoing</div>
+      <div class="stat-card-number" style="color:var(--status-ongoing)">2</div>
+      <div class="stat-card-sub">Croatia · Greece</div>
+    </div>
+
+    <div class="stat-card" onclick="scrollToSection('planning')">
+      <div class="stat-card-bar" style="background:var(--status-planning)"></div>
+      <div class="stat-card-label">Planning</div>
+      <div class="stat-card-number" style="color:var(--status-planning)">1</div>
+      <div class="stat-card-sub">Amalfi Coast</div>
+    </div>
+
+    <div class="stat-card" onclick="scrollToSection('completed')">
+      <div class="stat-card-bar" style="background:var(--status-completed)"></div>
+      <div class="stat-card-label">Completed</div>
+      <div class="stat-card-number" style="color:var(--status-completed)">1</div>
+      <div class="stat-card-sub">Maldives guide ready</div>
+    </div>
+
+  </div>
+
+  <!-- ── UPCOMING ── -->
+  <div id="upcoming" class="animate-fade-up animate-fade-up-2">
+    <div class="section-header">
+      <div class="section-dot" style="background:var(--status-upcoming)"></div>
+      <span class="section-title">Upcoming Trips</span>
+      <span class="section-count">1 trip</span>
+    </div>
+    <div class="trips-grid trips-grid-1">
+
+      <div class="card trip-card">
+        <div class="trip-card-img-placeholder" style="background:linear-gradient(135deg,#f0e6d3,#d4c4b0)">🌴</div>
+        <div class="card-body">
+          <div class="trip-card-badges">
+            <span class="badge badge-upcoming"><span class="badge-dot"></span>Upcoming</span>
+            <span class="badge-visibility">🔒 Private</span>
+          </div>
+          <div class="trip-card-name">Bali, Indonesia</div>
+          <div class="trip-card-meta">
+            <div class="trip-card-meta-row"><span>📅</span> Apr 15 – Apr 25, 2026</div>
+            <div class="trip-card-meta-row"><span>💰</span> Budget: $2,500</div>
+          </div>
+          <div class="trip-card-actions">
+            <button class="btn btn-primary btn-sm">🗺 Plan Trip</button>
+            <button class="btn btn-icon">✏️</button>
+            <button class="btn btn-icon">🗑</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── ONGOING ── -->
+  <div id="ongoing" class="animate-fade-up animate-fade-up-3">
+    <div class="section-header">
+      <div class="section-dot" style="background:var(--status-ongoing)"></div>
+      <span class="section-title">Ongoing Trips</span>
+      <span class="section-count">2 trips</span>
+    </div>
+    <div class="trips-grid trips-grid-2">
+
+      <div class="card trip-card">
+        <div class="trip-card-img-placeholder" style="background:linear-gradient(135deg,#c8b89a,#e8c89a)">🏛</div>
+        <div class="card-body">
+          <div class="trip-card-badges">
+            <span class="badge badge-ongoing"><span class="badge-dot"></span>Ongoing</span>
+            <span class="badge-visibility">👁 Public</span>
+          </div>
+          <div class="trip-card-name">Dubrovnik, Croatia</div>
+          <div class="trip-card-meta">
+            <div class="trip-card-meta-row"><span>📅</span> Jun 20 – Jun 28, 2026</div>
+            <div class="trip-card-meta-row"><span>💰</span> Budget: $3,700</div>
+          </div>
+          <div class="collab-row">
+            <div class="collab-avatar" style="background:var(--primary)">SC</div>
+            <div class="collab-avatar" style="background:var(--secondary)">MJ</div>
+            <div class="collab-avatar" style="background:var(--accent)">KL</div>
+            <span class="collab-label">3 travellers</span>
+          </div>
+          <div class="trip-card-actions">
+            <button class="btn btn-primary btn-sm">🗺 Plan Trip</button>
+            <button class="btn btn-icon">✏️</button>
+            <button class="btn btn-icon">🗑</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card trip-card">
+        <div class="trip-card-img-placeholder" style="background:linear-gradient(135deg,#b8c8e0,#d8e8f0)">⛵</div>
+        <div class="card-body">
+          <div class="trip-card-badges">
+            <span class="badge badge-ongoing"><span class="badge-dot"></span>Ongoing</span>
+            <span class="badge-visibility">🔒 Private</span>
+          </div>
+          <div class="trip-card-name">Santorini, Greece</div>
+          <div class="trip-card-meta">
+            <div class="trip-card-meta-row"><span>📅</span> Jul 10 – Jul 17, 2026</div>
+            <div class="trip-card-meta-row"><span>💰</span> Budget: $2,200</div>
+          </div>
+          <div class="collab-row">
+            <div class="collab-avatar" style="background:var(--primary)">SC</div>
+            <div class="collab-avatar" style="background:var(--peach)">AL</div>
+            <span class="collab-label">2 travellers</span>
+          </div>
+          <div class="trip-card-actions">
+            <button class="btn btn-primary btn-sm">🗺 Plan Trip</button>
+            <button class="btn btn-icon">✏️</button>
+            <button class="btn btn-icon">🗑</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── IN PLANNING ── -->
+  <div id="planning" class="animate-fade-up animate-fade-up-4">
+    <div class="section-header">
+      <div class="section-dot" style="background:var(--status-planning)"></div>
+      <span class="section-title">In Planning</span>
+      <span class="section-count">1 trip</span>
+    </div>
+    <div class="trips-grid trips-grid-1">
+
+      <div class="card trip-card">
+        <div class="trip-card-img-placeholder" style="background:linear-gradient(135deg,#a8c4b8,#88a898)">🌊</div>
+        <div class="card-body">
+          <div class="trip-card-badges">
+            <span class="badge badge-planning"><span class="badge-dot"></span>Planning</span>
+            <span class="badge-visibility">👁 Public</span>
+          </div>
+          <div class="trip-card-name">Amalfi Coast, Italy</div>
+          <div class="trip-card-meta">
+            <div class="trip-card-meta-row"><span>📅</span> Sep 5 – Sep 15, 2026</div>
+            <div class="trip-card-meta-row"><span>💰</span> Budget: $4,500</div>
+          </div>
+          <div class="trip-card-actions">
+            <button class="btn btn-primary btn-sm">🗺 Plan Trip</button>
+            <button class="btn btn-icon">✏️</button>
+            <button class="btn btn-icon">🗑</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── COMPLETED ── -->
+  <div id="completed" class="animate-fade-up animate-fade-up-5">
+    <div class="section-header">
+      <div class="section-dot" style="background:var(--status-completed)"></div>
+      <span class="section-title">Completed Trips</span>
+      <span class="section-count">1 trip</span>
+    </div>
+    <div class="trips-grid trips-grid-1">
+
+      <div class="card trip-card">
+        <div class="trip-card-img-placeholder" style="background:linear-gradient(135deg,#88b8c8,#a8d8e8)">🏝</div>
+        <div class="card-body">
+          <div class="trip-card-badges">
+            <span class="badge badge-completed"><span class="badge-dot"></span>Completed</span>
+            <span class="badge-visibility">👁 Public</span>
+          </div>
+          <div class="trip-card-name">Maldives</div>
+          <div class="trip-card-meta">
+            <div class="trip-card-meta-row"><span>📅</span> Dec 5 – Dec 12, 2025</div>
+            <div class="trip-card-meta-row"><span>💰</span> Budget: $8,000</div>
+          </div>
+          <div class="trip-card-actions">
+            <button class="btn btn-accent btn-sm">✦ Publish Guide</button>
+            <button class="btn btn-icon">✏️</button>
+            <button class="btn btn-icon">🗑</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- ── NEW TRIP MODAL ── -->
+<div class="modal-overlay" id="newTripModal" onclick="closeOnOverlay(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">New Trip</h2>
+      <button class="btn btn-icon" onclick="closeNewTripModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Destination</label>
+      <input class="form-input" type="text" placeholder="e.g. Tokyo, Japan">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="form-group">
+        <label class="form-label">Start Date</label>
+        <input class="form-input" type="date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">End Date</label>
+        <input class="form-input" type="date">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Budget</label>
+      <input class="form-input" type="text" placeholder="e.g. $3,000">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select class="form-input">
+        <option>Upcoming</option>
+        <option>Ongoing</option>
+        <option>Planning</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Visibility</label>
+      <select class="form-input">
+        <option>Private</option>
+        <option>Public</option>
+      </select>
+    </div>
+    <div class="divider"></div>
+    <div class="flex" style="gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeNewTripModal()">Cancel</button>
+      <button class="btn btn-primary">Create Trip</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openNewTripModal() {
+    document.getElementById('newTripModal').classList.add('open');
+  }
+  function closeNewTripModal() {
+    document.getElementById('newTripModal').classList.remove('open');
+  }
+  function closeOnOverlay(e) {
+    if (e.target === document.getElementById('newTripModal')) closeNewTripModal();
+  }
+  function scrollToSection(id) {
+    document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+</script>
+
+</body>
+</html>
