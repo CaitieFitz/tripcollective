@@ -3,659 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TripCollective — Travel Planned Together</title>
+  <title>TripCollective — Dashboard</title>
   <link rel="stylesheet" href="styles/global.css">
   <style>
-
-    /* ── LANDING-SPECIFIC OVERRIDES ── */
-    body { overflow-x: hidden; }
-
-    /* ── NAV ── */
-    .landing-nav {
+    /* ── PAGE-SPECIFIC STYLES ── */
+    .page-header {
       display: flex;
-      align-items: center;
+      align-items: flex-end;
       justify-content: space-between;
-      padding: 0 48px;
-      height: 68px;
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
-      transition: background 0.3s, border-color 0.3s;
+      margin-bottom: 32px;
     }
 
-    .landing-nav.scrolled {
-      background: rgba(253,248,245,0.92);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .nav-actions { display: flex; align-items: center; gap: 10px; }
-
-    /* ── HERO ── */
-    .hero {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 120px 24px 80px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* Gradient mesh background */
-    .hero::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(ellipse at 20% 50%, rgba(235,168,184,0.28) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 20%, rgba(232,133,106,0.2) 0%, transparent 45%),
-        radial-gradient(ellipse at 60% 80%, rgba(168,159,200,0.22) 0%, transparent 50%),
-        radial-gradient(ellipse at 90% 70%, rgba(143,163,212,0.18) 0%, transparent 40%);
-      pointer-events: none;
-    }
-
-    .hero-eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(255,255,255,0.7);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-full);
-      padding: 6px 16px;
-      font-size: 0.75rem;
-      font-weight: 500;
+    .page-header p {
+      font-size: 0.88rem;
       color: var(--text-muted);
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      margin-bottom: 28px;
-      backdrop-filter: blur(8px);
-      animation: fadeUp 0.6s ease both;
+      margin-top: 6px;
     }
 
-    .hero-eyebrow-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--primary);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(0.8); }
-    }
-
-    .hero-headline {
-      font-family: var(--font-display);
-      font-size: clamp(3rem, 8vw, 6.5rem);
-      font-weight: 300;
-      line-height: 0.95;
-      letter-spacing: -0.03em;
-      margin-bottom: 24px;
-      max-width: 900px;
-      animation: fadeUp 0.6s ease 0.1s both;
-    }
-
-    .hero-headline em {
-      font-style: italic;
-      background: linear-gradient(135deg, var(--primary), var(--secondary) 50%, var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .hero-sub {
-      font-size: clamp(1rem, 2vw, 1.15rem);
-      color: var(--text-muted);
-      max-width: 520px;
-      line-height: 1.7;
-      margin-bottom: 40px;
-      animation: fadeUp 0.6s ease 0.2s both;
-    }
-
-    .hero-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 64px;
-      animation: fadeUp 0.6s ease 0.3s both;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
-    /* Source logos strip */
-    .trusted-by {
-      animation: fadeUp 0.6s ease 0.4s both;
-      text-align: center;
-    }
-
-    .trusted-label {
-      font-size: 0.72rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      margin-bottom: 16px;
-    }
-
-    .source-logos {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 28px;
-      flex-wrap: wrap;
-    }
-
-    .source-logo {
-      font-family: var(--font-display);
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      opacity: 0.6;
-      letter-spacing: 0.04em;
-      transition: opacity 0.2s;
-    }
-
-    .source-logo:hover { opacity: 1; }
-
-    /* ── SCROLL INDICATOR ── */
-    .scroll-indicator {
-      position: absolute;
-      bottom: 32px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      color: var(--text-muted);
-      font-size: 0.7rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      animation: fadeIn 1s ease 1s both;
-    }
-
-    .scroll-line {
-      width: 1px;
-      height: 40px;
-      background: linear-gradient(to bottom, var(--border), transparent);
-      animation: scrollDown 2s ease infinite;
-    }
-
-    @keyframes scrollDown {
-      0% { transform: scaleY(0); transform-origin: top; }
-      50% { transform: scaleY(1); transform-origin: top; }
-      51% { transform: scaleY(1); transform-origin: bottom; }
-      100% { transform: scaleY(0); transform-origin: bottom; }
-    }
-
-    /* ── FEATURE SECTIONS ── */
-    .section {
-      padding: 100px 48px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    .section-eyebrow {
-      font-size: 0.72rem;
-      font-weight: 500;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--primary);
-      margin-bottom: 16px;
-    }
-
-    .section-headline {
-      font-family: var(--font-display);
-      font-size: clamp(2rem, 4vw, 3.2rem);
-      font-weight: 300;
-      letter-spacing: -0.02em;
-      line-height: 1.1;
-      margin-bottom: 16px;
-      max-width: 600px;
-    }
-
-    .section-headline em {
-      font-style: italic;
-      color: var(--primary);
-    }
-
-    .section-sub {
-      font-size: 0.95rem;
-      color: var(--text-muted);
-      line-height: 1.7;
-      max-width: 480px;
-      margin-bottom: 48px;
-    }
-
-    /* Feature 1 — Planning */
-    .feature-planning {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 80px;
-      align-items: center;
-    }
-
-    /* Feature 2 — Trusted sources */
-    .feature-sources {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 80px;
-      align-items: center;
-    }
-
-    /* Feature 3 — Community */
-    .feature-community {
-      text-align: center;
-      padding: 100px 48px;
-      background: linear-gradient(135deg, rgba(232,133,106,0.06), rgba(235,168,184,0.08), rgba(168,159,200,0.06));
-      border-radius: 32px;
-      margin: 0 48px;
-    }
-
-    /* ── MOCK UI COMPONENTS ── */
-    .mock-card {
-      background: white;
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-lg);
-      overflow: hidden;
-    }
-
-    .mock-itinerary {
-      padding: 24px;
-    }
-
-    .mock-itinerary-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-    }
-
-    .mock-itinerary-title {
-      font-family: var(--font-display);
-      font-size: 1.3rem;
-      font-weight: 600;
-    }
-
-    .mock-day {
-      margin-bottom: 16px;
-    }
-
-    .mock-day-label {
-      font-size: 0.68rem;
-      font-weight: 500;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-    }
-
-    .mock-activity {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      margin-bottom: 6px;
-      transition: background 0.2s;
-    }
-
-    .mock-activity:hover { background: var(--muted); }
-
-    .mock-activity-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.9rem;
-      flex-shrink: 0;
-    }
-
-    .mock-activity-info { flex: 1; }
-
-    .mock-activity-name {
-      font-size: 0.82rem;
-      font-weight: 500;
-      margin-bottom: 2px;
-    }
-
-    .mock-activity-meta {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-    }
-
-    .mock-activity-source {
-      font-size: 0.65rem;
-      padding: 2px 8px;
-      border-radius: 10px;
-      background: var(--muted);
-      color: var(--text-muted);
-      white-space: nowrap;
-    }
-
-    /* Source cards */
-    .source-cards {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    .source-card {
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 16px;
-      box-shadow: var(--shadow-sm);
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .source-card:hover {
-      transform: translateY(-3px);
-      box-shadow: var(--shadow-md);
-    }
-
-    .source-card-icon {
-      font-size: 1.4rem;
-      margin-bottom: 8px;
-    }
-
-    .source-card-name {
-      font-size: 0.8rem;
-      font-weight: 600;
-      margin-bottom: 3px;
-    }
-
-    .source-card-desc {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      line-height: 1.5;
-    }
-
-    /* Community grid */
-    .community-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      margin-top: 40px;
-      max-width: 800px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    .community-card {
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: var(--shadow-sm);
-      transition: transform 0.2s;
-    }
-
-    .community-card:hover { transform: translateY(-4px); }
-
-    .community-card-img {
-      height: 100px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2rem;
-    }
-
-    .community-card-body { padding: 12px; }
-    .community-card-title { font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; }
-    .community-card-meta { font-size: 0.7rem; color: var(--text-muted); }
-
-    /* ── HOW IT WORKS ── */
-    .how-it-works {
-      padding: 100px 48px;
-      max-width: 1200px;
-      margin: 0 auto;
-      text-align: center;
-    }
-
-    .steps-grid {
+    /* Stat Cards Row */
+    .stats-row {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 32px;
-      margin-top: 56px;
-      position: relative;
-    }
-
-    .steps-grid::before {
-      content: '';
-      position: absolute;
-      top: 28px;
-      left: 15%;
-      right: 15%;
-      height: 1px;
-      background: linear-gradient(to right, var(--primary), var(--secondary), var(--accent), var(--periwinkle));
-      opacity: 0.3;
-    }
-
-    .step {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
       gap: 14px;
+      margin-bottom: 8px;
     }
 
-    .step-num {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--font-display);
-      font-size: 1.4rem;
-      font-weight: 300;
-      color: white;
-      position: relative;
-      z-index: 1;
-    }
-
-    .step-title {
-      font-family: var(--font-display);
-      font-size: 1.1rem;
-      font-weight: 600;
-    }
-
-    .step-desc {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
-
-    /* ── CTA SECTION ── */
-    .cta-section {
-      margin: 0 48px 100px;
-      background: linear-gradient(135deg, var(--primary), var(--secondary) 50%, var(--accent));
-      border-radius: 32px;
-      padding: 80px 48px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .cta-section::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(ellipse at 30% 50%, rgba(255,255,255,0.15), transparent 60%),
-                  radial-gradient(ellipse at 70% 30%, rgba(255,255,255,0.1), transparent 50%);
-    }
-
-    .cta-section * { position: relative; z-index: 1; }
-
-    .cta-headline {
-      font-family: var(--font-display);
-      font-size: clamp(2.2rem, 5vw, 4rem);
-      font-weight: 300;
-      color: white;
-      letter-spacing: -0.02em;
-      line-height: 1.1;
-      margin-bottom: 16px;
-    }
-
-    .cta-sub {
-      color: rgba(255,255,255,0.8);
-      font-size: 1rem;
-      margin-bottom: 36px;
-      line-height: 1.6;
-    }
-
-    .btn-white {
-      background: white;
-      color: var(--primary);
-      font-weight: 600;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-    }
-
-    .btn-white:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 14px 32px rgba(0,0,0,0.2);
-    }
-
-    .btn-outline-white {
-      background: rgba(255,255,255,0.15);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.4);
-    }
-
-    .btn-outline-white:hover {
-      background: rgba(255,255,255,0.25);
-      transform: translateY(-1px);
-    }
-
-    /* ── FOOTER ── */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 40px 48px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .footer-logo {
-      font-family: var(--font-display);
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    .footer-links {
-      display: flex;
-      gap: 24px;
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    .footer-links a:hover { color: var(--text); }
-
-    .footer-copy {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    /* ── FLOATING CARDS (hero decoration) ── */
-    .hero-float {
-      position: absolute;
-      pointer-events: none;
-    }
-
-    .float-card-1 {
-      top: 18%; right: 6%;
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 12px 16px;
-      box-shadow: var(--shadow-md);
-      font-size: 0.78rem;
-      animation: float1 6s ease-in-out infinite;
-      max-width: 180px;
-    }
-
-    .float-card-2 {
-      bottom: 22%; left: 5%;
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 12px 16px;
-      box-shadow: var(--shadow-md);
-      font-size: 0.78rem;
-      animation: float2 7s ease-in-out infinite;
-      max-width: 200px;
-    }
-
-    .float-card-3 {
-      top: 30%; left: 4%;
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 10px 14px;
-      box-shadow: var(--shadow-md);
-      font-size: 0.75rem;
-      animation: float1 8s ease-in-out 1s infinite;
-      max-width: 160px;
-    }
-
-    @keyframes float1 {
-      0%, 100% { transform: translateY(0px) rotate(-1deg); }
-      50% { transform: translateY(-12px) rotate(1deg); }
-    }
-
-    @keyframes float2 {
-      0%, 100% { transform: translateY(0px) rotate(1deg); }
-      50% { transform: translateY(-10px) rotate(-1deg); }
-    }
-
-    .float-card-label {
-      font-size: 0.62rem;
-      font-weight: 500;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      margin-bottom: 5px;
-    }
-
-    .float-card-value {
-      font-weight: 500;
-      color: var(--text);
-      margin-bottom: 2px;
-    }
-
-    .float-card-sub { color: var(--text-muted); font-size: 0.7rem; }
-
-    /* ── REVEAL ON SCROLL ── */
-    .reveal {
-      opacity: 0;
-      transform: translateY(24px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
-    }
-
-    .reveal.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    /* ── RESPONSIVE ── */
     @media (max-width: 768px) {
-      .landing-nav { padding: 0 20px; }
-      .feature-planning,
-      .feature-sources { grid-template-columns: 1fr; gap: 40px; }
-      .steps-grid { grid-template-columns: repeat(2, 1fr); }
-      .steps-grid::before { display: none; }
-      .community-grid { grid-template-columns: repeat(2, 1fr); }
-      .source-cards { grid-template-columns: 1fr; }
-      .cta-section { margin: 0 20px 60px; padding: 60px 24px; }
-      .feature-community { margin: 0 20px; padding: 60px 24px; }
-      .hero-float { display: none; }
-      footer { flex-direction: column; gap: 16px; text-align: center; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .page-header { flex-direction: column; align-items: flex-start; gap: 16px; }
     }
   </style>
 </head>
@@ -663,325 +38,292 @@
 
 <div class="bg-ambience"></div>
 
-<!-- ── NAV ── -->
-<nav class="landing-nav" id="landingNav">
-  <a href="#" class="nav-logo">
+<!-- ── NAVIGATION ── -->
+<nav class="nav">
+  <a href="index.html" class="nav-logo">
     <div class="nav-logo-icon">🧭</div>
     <span class="nav-logo-text">TripCollective</span>
   </a>
-  <div class="nav-links" style="display:flex">
-    <a href="#how" class="nav-link">How it works</a>
-    <a href="#sources" class="nav-link">Sources</a>
-    <a href="#community" class="nav-link">Community</a>
+  <div class="nav-links">
+    <a href="index.html"          class="nav-link active">Dashboard</a>
+    <a href="trip-planner.html"   class="nav-link">Trip Planner</a>
+    <a href="explore-map.html"    class="nav-link">Explore Map</a>
+    <a href="community.html"      class="nav-link">Community</a>
+    <a href="saved-guides.html"   class="nav-link">Saved Guides</a>
   </div>
-  <div class="nav-actions">
-    <button class="btn btn-ghost btn-sm" onclick="window.location='login.html'">Log in</button>
-    <button class="btn btn-primary btn-sm" onclick="window.location='login.html'">Get started</button>
-  </div>
+  <a href="profile.html" class="nav-avatar" title="Profile">SC</a>
 </nav>
 
-<!-- ── HERO ── -->
-<section class="hero">
+<div class="page-wrapper">
+<main class="main-content">
 
-  <!-- Floating decoration cards -->
-  <div class="hero-float float-card-1">
-    <div class="float-card-label">✦ NYT Verified</div>
-    <div class="float-card-value">Osteria Francescana</div>
-    <div class="float-card-sub">Modena, Italy · ★★★</div>
-  </div>
-
-  <div class="hero-float float-card-2">
-    <div class="float-card-label">👥 Sarah's pick</div>
-    <div class="float-card-value">"Best sunset in Santorini"</div>
-    <div class="float-card-sub">Oia Castle · been 3×</div>
-  </div>
-
-  <div class="hero-float float-card-3">
-    <div class="float-card-label">📍 6 friends joining</div>
-    <div class="float-card-value">Amalfi Coast</div>
-    <div class="float-card-sub">Sep 5 – 15, 2026</div>
-  </div>
-
-  <div class="hero-eyebrow">
-    <div class="hero-eyebrow-dot"></div>
-    Trusted travel planning
-  </div>
-
-  <h1 class="hero-headline">
-    Plan trips with<br>
-    people you <em>trust.</em>
-  </h1>
-
-  <p class="hero-sub">
-    TripCollective brings together your friends' real experiences and the world's best travel sources — NYT, Condé Nast, Michelin, Eater — so every recommendation means something.
-  </p>
-
-  <div class="hero-actions">
-    <button class="btn btn-primary btn-lg" onclick="window.location='login.html'">
-      Start planning free →
-    </button>
-    <button class="btn btn-ghost btn-lg" onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})">
-      See how it works
+  <!-- ── PAGE HEADER ── -->
+  <div class="page-header animate-fade-up">
+    <div>
+      <h1 class="display display-xl">Your Adventures</h1>
+      <p>Plan, explore, and relive every journey from one place.</p>
+    </div>
+    <button class="btn btn-primary btn-lg" onclick="openNewTripModal()">
+      ＋ New Trip
     </button>
   </div>
 
-  <div class="trusted-by">
-    <div class="trusted-label">Recommendations from sources you trust</div>
-    <div class="source-logos">
-      <span class="source-logo">New York Times</span>
-      <span class="source-logo">Condé Nast</span>
-      <span class="source-logo">Michelin</span>
-      <span class="source-logo">Eater</span>
-      <span class="source-logo">Lonely Planet</span>
-      <span class="source-logo">Tripadvisor</span>
-    </div>
-  </div>
+  <!-- ── STAT CARDS ── -->
+  <div class="stats-row animate-fade-up animate-fade-up-1">
 
-  <div class="scroll-indicator">
-    <div class="scroll-line"></div>
-  </div>
-
-</section>
-
-<!-- ── HOW IT WORKS ── -->
-<section class="how-it-works reveal" id="how">
-  <p class="section-eyebrow">Simple by design</p>
-  <h2 class="display display-lg" style="margin-bottom:12px;letter-spacing:-0.02em">From idea to itinerary<br>in minutes</h2>
-  <p style="color:var(--text-muted);font-size:0.95rem;max-width:400px;margin:0 auto">No more 47-tab browser sessions or lost group chats.</p>
-
-  <div class="steps-grid">
-    <div class="step reveal">
-      <div class="step-num" style="background:linear-gradient(135deg,var(--primary),var(--peach))">1</div>
-      <div class="step-title">Create a trip</div>
-      <div class="step-desc">Name your destination, set dates and a budget. Takes 30 seconds.</div>
-    </div>
-    <div class="step reveal">
-      <div class="step-num" style="background:linear-gradient(135deg,var(--secondary),var(--primary))">2</div>
-      <div class="step-title">Invite your crew</div>
-      <div class="step-desc">Friends join with a link. Everyone can add ideas, vote, and collaborate in real time.</div>
-    </div>
-    <div class="step reveal">
-      <div class="step-num" style="background:linear-gradient(135deg,var(--accent),var(--secondary))">3</div>
-      <div class="step-title">Discover trusted picks</div>
-      <div class="step-desc">Browse recommendations from top publications and friends who've actually been there.</div>
-    </div>
-    <div class="step reveal">
-      <div class="step-num" style="background:linear-gradient(135deg,var(--periwinkle),var(--accent))">4</div>
-      <div class="step-title">Build your itinerary</div>
-      <div class="step-desc">Drag activities onto your timeline. Export, share, or publish as a guide when you're back.</div>
-    </div>
-  </div>
-</section>
-
-<!-- ── FEATURE: PLANNING ── -->
-<section class="section reveal" id="planning">
-  <div class="feature-planning">
-    <div>
-      <p class="section-eyebrow">Smart itineraries</p>
-      <h2 class="section-headline">Planning that actually <em>works</em> for groups</h2>
-      <p class="section-sub">Everyone on the trip can add suggestions, vote on options, and see the plan update in real time. No more "wait which doc is the latest one?"</p>
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <div style="display:flex;align-items:center;gap:12px;font-size:0.85rem">
-          <span style="width:28px;height:28px;border-radius:8px;background:rgba(232,133,106,0.12);display:flex;align-items:center;justify-content:center">✈️</span>
-          Collaborative itinerary building
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;font-size:0.85rem">
-          <span style="width:28px;height:28px;border-radius:8px;background:rgba(235,168,184,0.12);display:flex;align-items:center;justify-content:center">🗳</span>
-          Vote on activities and restaurants
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;font-size:0.85rem">
-          <span style="width:28px;height:28px;border-radius:8px;background:rgba(168,159,200,0.12);display:flex;align-items:center;justify-content:center">🗺</span>
-          Google Maps integration
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;font-size:0.85rem">
-          <span style="width:28px;height:28px;border-radius:8px;background:rgba(143,163,212,0.12);display:flex;align-items:center;justify-content:center">💰</span>
-          Shared budget tracking
-        </div>
-      </div>
+    <div class="stat-card" onclick="scrollToSection('upcoming')">
+      <div class="stat-card-bar" style="background:var(--status-upcoming)"></div>
+      <div class="stat-card-label">Upcoming</div>
+      <div class="stat-card-number" style="color:var(--status-upcoming)">1</div>
+      <div class="stat-card-sub">Next: Bali in 38 days</div>
     </div>
 
-    <!-- Mock itinerary -->
-    <div class="mock-card">
-      <div class="mock-itinerary">
-        <div class="mock-itinerary-header">
-          <div>
-            <div class="mock-itinerary-title">Amalfi Coast</div>
-            <div style="font-size:0.72rem;color:var(--text-muted)">Sep 5–15 · 4 people · $4,500</div>
-          </div>
-          <span class="badge badge-planning"><span class="badge-dot"></span>Planning</span>
-        </div>
-
-        <div class="mock-day">
-          <div class="mock-day-label">Day 1 · Sep 5</div>
-          <div class="mock-activity">
-            <div class="mock-activity-icon" style="background:rgba(232,133,106,0.12)">🍋</div>
-            <div class="mock-activity-info">
-              <div class="mock-activity-name">Limoncello tasting, Ravello</div>
-              <div class="mock-activity-meta">2:00 PM · 1.5 hrs</div>
-            </div>
-            <span class="mock-activity-source">Eater</span>
-          </div>
-          <div class="mock-activity">
-            <div class="mock-activity-icon" style="background:rgba(235,168,184,0.12)">🌅</div>
-            <div class="mock-activity-info">
-              <div class="mock-activity-name">Sunset at Villa Cimbrone</div>
-              <div class="mock-activity-meta">7:00 PM · 2 hrs</div>
-            </div>
-            <span class="mock-activity-source">Sarah ★</span>
-          </div>
-        </div>
-
-        <div class="mock-day">
-          <div class="mock-day-label">Day 2 · Sep 6</div>
-          <div class="mock-activity">
-            <div class="mock-activity-icon" style="background:rgba(168,159,200,0.12)">⛵</div>
-            <div class="mock-activity-info">
-              <div class="mock-activity-name">Boat tour to Positano</div>
-              <div class="mock-activity-meta">10:00 AM · Full day</div>
-            </div>
-            <span class="mock-activity-source">CNT</span>
-          </div>
-          <div class="mock-activity">
-            <div class="mock-activity-icon" style="background:rgba(43,161,118,0.1)">🍝</div>
-            <div class="mock-activity-info">
-              <div class="mock-activity-name">Da Adolfo restaurant</div>
-              <div class="mock-activity-meta">1:30 PM · Lunch</div>
-            </div>
-            <span class="mock-activity-source">Michelin</span>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ── FEATURE: SOURCES ── -->
-<section class="section reveal" id="sources">
-  <div class="feature-sources">
-
-    <!-- Source cards -->
-    <div class="source-cards">
-      <div class="source-card">
-        <div class="source-card-icon">📰</div>
-        <div class="source-card-name">New York Times</div>
-        <div class="source-card-desc">Travel journalism and destination guides from award-winning writers</div>
-      </div>
-      <div class="source-card">
-        <div class="source-card-icon">✦</div>
-        <div class="source-card-name">Michelin Guide</div>
-        <div class="source-card-desc">The gold standard for restaurant recommendations worldwide</div>
-      </div>
-      <div class="source-card">
-        <div class="source-card-icon">🌴</div>
-        <div class="source-card-name">Condé Nast</div>
-        <div class="source-card-desc">Curated luxury travel and readers' choice destinations</div>
-      </div>
-      <div class="source-card">
-        <div class="source-card-icon">🍴</div>
-        <div class="source-card-name">Eater</div>
-        <div class="source-card-desc">Local food scene experts and the best restaurants in every city</div>
-      </div>
-      <div class="source-card">
-        <div class="source-card-icon">🗺</div>
-        <div class="source-card-name">Lonely Planet</div>
-        <div class="source-card-desc">On-the-ground travel guides for every kind of traveller</div>
-      </div>
-      <div class="source-card">
-        <div class="source-card-icon">⭐</div>
-        <div class="source-card-name">Your Friends</div>
-        <div class="source-card-desc">Real recommendations from people who've actually been there</div>
-      </div>
+    <div class="stat-card" onclick="scrollToSection('ongoing')">
+      <div class="stat-card-bar" style="background:var(--status-ongoing)"></div>
+      <div class="stat-card-label">Ongoing</div>
+      <div class="stat-card-number" style="color:var(--status-ongoing)">2</div>
+      <div class="stat-card-sub">Croatia · Greece</div>
     </div>
 
-    <div>
-      <p class="section-eyebrow">Trusted sources</p>
-      <h2 class="section-headline">Recommendations that <em>actually</em> mean something</h2>
-      <p class="section-sub">We don't surface random reviews. Every recommendation is tagged to its source — so you know if it's a Michelin pick, a NYT favourite, or your friend Maya who's visited seven times.</p>
-      <button class="btn btn-primary">Explore recommendations →</button>
+    <div class="stat-card" onclick="scrollToSection('planning')">
+      <div class="stat-card-bar" style="background:var(--status-planning)"></div>
+      <div class="stat-card-label">Planning</div>
+      <div class="stat-card-number" style="color:var(--status-planning)">1</div>
+      <div class="stat-card-sub">Amalfi Coast</div>
+    </div>
+
+    <div class="stat-card" onclick="scrollToSection('completed')">
+      <div class="stat-card-bar" style="background:var(--status-completed)"></div>
+      <div class="stat-card-label">Completed</div>
+      <div class="stat-card-number" style="color:var(--status-completed)">1</div>
+      <div class="stat-card-sub">Maldives guide ready</div>
     </div>
 
   </div>
-</section>
 
-<!-- ── FEATURE: COMMUNITY ── -->
-<div class="feature-community reveal" id="community">
-  <p class="section-eyebrow">Growing community</p>
-  <h2 class="display display-lg" style="letter-spacing:-0.02em;margin-bottom:12px">
-    Real trips.<br>Real people.
-  </h2>
-  <p style="color:rgba(255,255,255,0.75);font-size:0.95rem;max-width:440px;margin:0 auto;line-height:1.7;color:var(--text-muted)">
-    Browse published guides from travellers who've done the trip. Save what inspires you. Share what you know.
-  </p>
+  <!-- ── UPCOMING ── -->
+  <div id="upcoming" class="animate-fade-up animate-fade-up-2">
+    <div class="section-header">
+      <div class="section-dot" style="background:var(--status-upcoming)"></div>
+      <span class="section-title">Upcoming Trips</span>
+      <span class="section-count">1 trip</span>
+    </div>
+    <div class="trips-grid trips-grid-1">
 
-  <div class="community-grid">
-    <div class="community-card">
-      <div class="community-card-img" style="background:linear-gradient(135deg,#f0e0d0,#e8c8b0)">🏛</div>
-      <div class="community-card-body">
-        <div class="community-card-title">10 days in Rome</div>
-        <div class="community-card-meta">by @jessica · 847 saves</div>
+      <div class="card trip-card">
+        <div class="trip-card-img-placeholder" style="background:linear-gradient(135deg,#f0e6d3,#d4c4b0)">🌴</div>
+        <div class="card-body">
+          <div class="trip-card-badges">
+            <span class="badge badge-upcoming"><span class="badge-dot"></span>Upcoming</span>
+            <span class="badge-visibility">🔒 Private</span>
+          </div>
+          <div class="trip-card-name">Bali, Indonesia</div>
+          <div class="trip-card-meta">
+            <div class="trip-card-meta-row"><span>📅</span> Apr 15 – Apr 25, 2026</div>
+            <div class="trip-card-meta-row"><span>💰</span> Budget: $2,500</div>
+          </div>
+          <div class="trip-card-actions">
+            <button class="btn btn-primary btn-sm">🗺 Plan Trip</button>
+            <button class="btn btn-icon">✏️</button>
+            <button class="btn btn-icon">🗑</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── ONGOING ── -->
+  <div id="ongoing" class="animate-fade-up animate-fade-up-3">
+    <div class="section-header">
+      <div class="section-dot" style="background:var(--status-ongoing)"></div>
+      <span class="section-title">Ongoing Trips</span>
+      <span class="section-count">2 trips</span>
+    </div>
+    <div class="trips-grid trips-grid-2">
+
+      <div class="card trip-card">
+        <div class="trip-card-img-placeholder" style="background:linear-gradient(135deg,#c8b89a,#e8c89a)">🏛</div>
+        <div class="card-body">
+          <div class="trip-card-badges">
+            <span class="badge badge-ongoing"><span class="badge-dot"></span>Ongoing</span>
+            <span class="badge-visibility">👁 Public</span>
+          </div>
+          <div class="trip-card-name">Dubrovnik, Croatia</div>
+          <div class="trip-card-meta">
+            <div class="trip-card-meta-row"><span>📅</span> Jun 20 – Jun 28, 2026</div>
+            <div class="trip-card-meta-row"><span>💰</span> Budget: $3,700</div>
+          </div>
+          <div class="collab-row">
+            <div class="collab-avatar" style="background:var(--primary)">SC</div>
+            <div class="collab-avatar" style="background:var(--secondary)">MJ</div>
+            <div class="collab-avatar" style="background:var(--accent)">KL</div>
+            <span class="collab-label">3 travellers</span>
+          </div>
+          <div class="trip-card-actions">
+            <button class="btn btn-primary btn-sm">🗺 Plan Trip</button>
+            <button class="btn btn-icon">✏️</button>
+            <button class="btn btn-icon">🗑</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card trip-card">
+        <div class="trip-card-img-placeholder" style="background:linear-gradient(135deg,#b8c8e0,#d8e8f0)">⛵</div>
+        <div class="card-body">
+          <div class="trip-card-badges">
+            <span class="badge badge-ongoing"><span class="badge-dot"></span>Ongoing</span>
+            <span class="badge-visibility">🔒 Private</span>
+          </div>
+          <div class="trip-card-name">Santorini, Greece</div>
+          <div class="trip-card-meta">
+            <div class="trip-card-meta-row"><span>📅</span> Jul 10 – Jul 17, 2026</div>
+            <div class="trip-card-meta-row"><span>💰</span> Budget: $2,200</div>
+          </div>
+          <div class="collab-row">
+            <div class="collab-avatar" style="background:var(--primary)">SC</div>
+            <div class="collab-avatar" style="background:var(--peach)">AL</div>
+            <span class="collab-label">2 travellers</span>
+          </div>
+          <div class="trip-card-actions">
+            <button class="btn btn-primary btn-sm">🗺 Plan Trip</button>
+            <button class="btn btn-icon">✏️</button>
+            <button class="btn btn-icon">🗑</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── IN PLANNING ── -->
+  <div id="planning" class="animate-fade-up animate-fade-up-4">
+    <div class="section-header">
+      <div class="section-dot" style="background:var(--status-planning)"></div>
+      <span class="section-title">In Planning</span>
+      <span class="section-count">1 trip</span>
+    </div>
+    <div class="trips-grid trips-grid-1">
+
+      <div class="card trip-card">
+        <div class="trip-card-img-placeholder" style="background:linear-gradient(135deg,#a8c4b8,#88a898)">🌊</div>
+        <div class="card-body">
+          <div class="trip-card-badges">
+            <span class="badge badge-planning"><span class="badge-dot"></span>Planning</span>
+            <span class="badge-visibility">👁 Public</span>
+          </div>
+          <div class="trip-card-name">Amalfi Coast, Italy</div>
+          <div class="trip-card-meta">
+            <div class="trip-card-meta-row"><span>📅</span> Sep 5 – Sep 15, 2026</div>
+            <div class="trip-card-meta-row"><span>💰</span> Budget: $4,500</div>
+          </div>
+          <div class="trip-card-actions">
+            <button class="btn btn-primary btn-sm">🗺 Plan Trip</button>
+            <button class="btn btn-icon">✏️</button>
+            <button class="btn btn-icon">🗑</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── COMPLETED ── -->
+  <div id="completed" class="animate-fade-up animate-fade-up-5">
+    <div class="section-header">
+      <div class="section-dot" style="background:var(--status-completed)"></div>
+      <span class="section-title">Completed Trips</span>
+      <span class="section-count">1 trip</span>
+    </div>
+    <div class="trips-grid trips-grid-1">
+
+      <div class="card trip-card">
+        <div class="trip-card-img-placeholder" style="background:linear-gradient(135deg,#88b8c8,#a8d8e8)">🏝</div>
+        <div class="card-body">
+          <div class="trip-card-badges">
+            <span class="badge badge-completed"><span class="badge-dot"></span>Completed</span>
+            <span class="badge-visibility">👁 Public</span>
+          </div>
+          <div class="trip-card-name">Maldives</div>
+          <div class="trip-card-meta">
+            <div class="trip-card-meta-row"><span>📅</span> Dec 5 – Dec 12, 2025</div>
+            <div class="trip-card-meta-row"><span>💰</span> Budget: $8,000</div>
+          </div>
+          <div class="trip-card-actions">
+            <button class="btn btn-accent btn-sm">✦ Publish Guide</button>
+            <button class="btn btn-icon">✏️</button>
+            <button class="btn btn-icon">🗑</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- ── NEW TRIP MODAL ── -->
+<div class="modal-overlay" id="newTripModal" onclick="closeOnOverlay(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">New Trip</h2>
+      <button class="btn btn-icon" onclick="closeNewTripModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Destination</label>
+      <input class="form-input" type="text" placeholder="e.g. Tokyo, Japan">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="form-group">
+        <label class="form-label">Start Date</label>
+        <input class="form-input" type="date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">End Date</label>
+        <input class="form-input" type="date">
       </div>
     </div>
-    <div class="community-card">
-      <div class="community-card-img" style="background:linear-gradient(135deg,#c8d8f0,#a8c8e8)">⛩</div>
-      <div class="community-card-body">
-        <div class="community-card-title">Tokyo on $100/day</div>
-        <div class="community-card-meta">by @marcus · 1.2k saves</div>
-      </div>
+    <div class="form-group">
+      <label class="form-label">Budget</label>
+      <input class="form-input" type="text" placeholder="e.g. $3,000">
     </div>
-    <div class="community-card">
-      <div class="community-card-img" style="background:linear-gradient(135deg,#d0e8d0,#b0d0b8)">🌿</div>
-      <div class="community-card-body">
-        <div class="community-card-title">Bali hidden gems</div>
-        <div class="community-card-meta">by @priya · 623 saves</div>
-      </div>
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select class="form-input">
+        <option>Upcoming</option>
+        <option>Ongoing</option>
+        <option>Planning</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Visibility</label>
+      <select class="form-input">
+        <option>Private</option>
+        <option>Public</option>
+      </select>
+    </div>
+    <div class="divider"></div>
+    <div class="flex" style="gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeNewTripModal()">Cancel</button>
+      <button class="btn btn-primary">Create Trip</button>
     </div>
   </div>
 </div>
 
-<!-- ── CTA ── -->
-<section class="cta-section reveal" style="margin-top:80px">
-  <h2 class="cta-headline">Your next adventure<br>starts here.</h2>
-  <p class="cta-sub">Free to start. No credit card required.<br>Your friends will thank you.</p>
-  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-    <button class="btn btn-white btn-lg" onclick="window.location='login.html'">
-      Start planning free →
-    </button>
-    <button class="btn btn-outline-white btn-lg">
-      See example trip
-    </button>
-  </div>
-</section>
-
-<!-- ── FOOTER ── -->
-<footer>
-  <span class="footer-logo">TripCollective</span>
-  <div class="footer-links">
-    <a href="#">About</a>
-    <a href="#">Community</a>
-    <a href="#">Privacy</a>
-    <a href="#">Terms</a>
-  </div>
-  <span class="footer-copy">© 2026 TripCollective</span>
-</footer>
-
 <script>
-  // Nav scroll effect
-  const nav = document.getElementById('landingNav');
-  window.addEventListener('scroll', () => {
-    nav.classList.toggle('scrolled', window.scrollY > 40);
-  });
-
-  // Scroll reveal
-  const reveals = document.querySelectorAll('.reveal');
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry, i) => {
-      if (entry.isIntersecting) {
-        setTimeout(() => entry.target.classList.add('visible'), i * 80);
-      }
-    });
-  }, { threshold: 0.1 });
-  reveals.forEach(el => observer.observe(el));
+  function openNewTripModal() {
+    document.getElementById('newTripModal').classList.add('open');
+  }
+  function closeNewTripModal() {
+    document.getElementById('newTripModal').classList.remove('open');
+  }
+  function closeOnOverlay(e) {
+    if (e.target === document.getElementById('newTripModal')) closeNewTripModal();
+  }
+  function scrollToSection(id) {
+    document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 </script>
 
 </body>

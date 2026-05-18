@@ -734,3 +734,8 @@ a { text-decoration: none; color: inherit; }
   .trips-grid-3 { grid-template-columns: 1fr; }
   .trips-grid-1 { grid-template-columns: 1fr; }
 }
+
+/* Nav avatar as link */
+a.nav-avatar {
+  text-decoration: none;
+}
