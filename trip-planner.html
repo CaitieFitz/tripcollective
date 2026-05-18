@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TripCollective — Trip Planner</title>
+  <link rel="stylesheet" href="styles/global.css">
+  <style>
+
+    /* ── LAYOUT ── */
+    body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+
+    .planner-shell {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - var(--nav-height));
+      overflow: hidden;
+    }
+
+    /* ── TRIP HEADER BAR ── */
+    .trip-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 28px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      gap: 16px;
+    }
+
+    .trip-header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .trip-back {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: none;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .trip-back:hover { background: var(--muted); color: var(--text); }
+
+    .trip-title-block { min-width: 0; }
+
+    .trip-name {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .trip-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 2px;
+    }
+
+    .trip-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .trip-header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    /* Collaborator stack */
+    .collab-stack {
+      display: flex;
+      align-items: center;
+    }
+
+    .collab-stack .collab-avatar {
+      width: 28px; height: 28px;
+      border: 2px solid var(--surface);
+      font-size: 0.6rem;
+      margin-right: -8px;
+    }
+
+    .collab-stack .collab-avatar:last-child { margin-right: 0; }
+
+    /* View toggle */
+    .view-toggle {
+      display: flex;
+      background: var(--muted);
+      border-radius: var(--radius-full);
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .view-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      border: none;
+      background: none;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-family: var(--font-body);
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .view-btn.active {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* ── DAY NAV ── */
+    .day-nav {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 0 28px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      flex-shrink: 0;
+      scrollbar-width: none;
+    }
+
+    .day-nav::-webkit-scrollbar { display: none; }
+
+    .day-tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 20px;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      min-width: 80px;
+      border: none;
+      background: none;
+      font-family: var(--font-body);
+    }
+
+    .day-tab:hover { background: var(--muted); }
+
+    .day-tab.active {
+      border-bottom: 2px solid var(--primary);
+    }
+
+    .day-tab-num {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      line-height: 1;
+      margin-bottom: 2px;
+    }
+
+    .day-tab.active .day-tab-num { color: var(--primary); }
+
+    .day-tab-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+
+    .day-tab.active .day-tab-label { color: var(--text); }
+
+    .day-tab-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--primary);
+      margin-top: 4px;
+      opacity: 0;
+    }
+
+    .day-tab.active .day-tab-dot { opacity: 1; }
+
+    .day-nav-add {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: 1.5px dashed var(--border);
+      background: none;
+      font-size: 1rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      margin-left: 8px;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+
+    .day-nav-add:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* ── MAIN PLANNER AREA ── */
+    .planner-main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── LEFT: ITINERARY PANEL ── */
+    .itinerary-panel {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      min-width: 0;
+    }
+
+    /* ── RIGHT: MAP PANEL ── */
+    .map-panel {
+      width: 420px;
+      flex-shrink: 0;
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: width 0.3s ease;
+    }
+
+    .map-panel.collapsed { width: 0; border: none; }
+
+    .map-placeholder {
+      flex: 1;
+      background: linear-gradient(135deg, #e8f0e8, #d8e8d8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Fake map grid */
+    .map-placeholder::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(168,200,168,0.3) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(168,200,168,0.3) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .map-placeholder::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 40% 40%, rgba(232,133,106,0.15), transparent 50%),
+        radial-gradient(ellipse at 70% 70%, rgba(143,163,212,0.15), transparent 40%);
+    }
+
+    .map-overlay {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+    }
+
+    .map-pins {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+    }
+
+    .map-pin {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .map-pin:hover { transform: scale(1.1); }
+
+    .map-pin-dot {
+      width: 28px; height: 28px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    }
+
+    .map-pin-icon {
+      transform: rotate(45deg);
+      font-size: 0.75rem;
+    }
+
+    .map-pin-label {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 3px 8px;
+      font-size: 0.65rem;
+      font-weight: 500;
+      white-space: nowrap;
+      margin-top: 4px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .map-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .map-header-title {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .map-toggle-btn {
+      background: none;
+      border: none;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-family: var(--font-body);
+      transition: color 0.2s;
+    }
+
+    .map-toggle-btn:hover { color: var(--primary); }
+
+    /* ── GRID VIEW ── */
+    .grid-view { display: none; }
+    .grid-view.active { display: flex; flex-direction: column; }
+
+    .grid-header-row {
+      display: grid;
+      grid-template-columns: 56px repeat(var(--day-count, 5), 1fr);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .grid-time-header {
+      padding: 10px 8px;
+      border-right: 1px solid var(--border);
+      font-size: 0.62rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      text-align: center;
+    }
+
+    .grid-day-header {
+      padding: 10px 12px;
+      border-right: 1px solid var(--border);
+      cursor: pointer;
+    }
+
+    .grid-day-header:last-child { border-right: none; }
+
+    .grid-day-name {
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .grid-day-date {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1;
+      margin-bottom: 2px;
+    }
+
+    .grid-day-location {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+
+    .grid-day-header.today .grid-day-date { color: var(--primary); }
+
+    .grid-body {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .grid-row {
+      display: grid;
+      grid-template-columns: 56px repeat(var(--day-count, 5), 1fr);
+      border-bottom: 1px solid rgba(232,223,240,0.5);
+      min-height: 52px;
+    }
+
+    .grid-row:hover { background: rgba(240,234,247,0.3); }
+
+    .grid-time-cell {
+      padding: 8px 4px;
+      border-right: 1px solid var(--border);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-align: center;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 6px;
+      flex-shrink: 0;
+    }
+
+    .grid-cell {
+      border-right: 1px solid rgba(232,223,240,0.5);
+      padding: 4px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .grid-cell:last-child { border-right: none; }
+    .grid-cell:hover { background: rgba(240,234,247,0.4); }
+
+    .grid-cell:hover::after {
+      content: '+';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      opacity: 0.4;
+    }
+
+    .grid-activity {
+      border-radius: 8px;
+      padding: 5px 8px;
+      font-size: 0.72rem;
+      font-weight: 500;
+      line-height: 1.3;
+      cursor: pointer;
+      position: relative;
+      z-index: 1;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .grid-activity:hover {
+      transform: scale(1.02);
+      box-shadow: var(--shadow-md);
+      z-index: 2;
+    }
+
+    .grid-activity-name { font-weight: 500; margin-bottom: 2px; }
+    .grid-activity-time { font-size: 0.62rem; opacity: 0.7; }
+
+    .grid-activity-source {
+      font-size: 0.58rem;
+      opacity: 0.7;
+      margin-top: 2px;
+    }
+
+    /* Category colors */
+    .cat-travel        { background: rgba(235,168,184,0.25); color: #a05070; border-left: 3px solid #EBA8B8; }
+    .cat-food          { background: rgba(43,161,118,0.15);  color: #1a7a58; border-left: 3px solid #2BA176; }
+    .cat-outdoors      { background: rgba(168,159,200,0.2);  color: #6B5FA8; border-left: 3px solid #A89FC8; }
+    .cat-culture       { background: rgba(143,163,212,0.2);  color: #4a6aaa; border-left: 3px solid #8FA3D4; }
+    .cat-nightlife     { background: rgba(44,32,56,0.1);     color: #2C2038; border-left: 3px solid #2C2038; }
+    .cat-accommodation { background: rgba(232,133,106,0.15); color: #a04428; border-left: 3px solid #E8856A; }
+
+    /* ── CARD VIEW ── */
+    .card-view { display: none; padding: 24px 28px; }
+    .card-view.active { display: block; }
+
+    .card-view-day {
+      margin-bottom: 32px;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .card-day-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-day-num {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 300;
+      color: var(--primary);
+      line-height: 1;
+      width: 40px;
+    }
+
+    .card-day-info {}
+
+    .card-day-name {
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+
+    .card-day-meta {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .card-day-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+    }
+
+    .card-activities {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .card-activity {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .card-activity:hover {
+      border-color: var(--accent);
+      box-shadow: var(--shadow-sm);
+      transform: translateX(3px);
+    }
+
+    .card-activity-time {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      width: 48px;
+      flex-shrink: 0;
+      padding-top: 2px;
+      text-align: right;
+    }
+
+    .card-activity-bar {
+      width: 3px;
+      border-radius: 3px;
+      align-self: stretch;
+      flex-shrink: 0;
+      min-height: 40px;
+    }
+
+    .card-activity-body { flex: 1; min-width: 0; }
+
+    .card-activity-name {
+      font-weight: 500;
+      font-size: 0.85rem;
+      margin-bottom: 3px;
+    }
+
+    .card-activity-meta {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-activity-source {
+      font-size: 0.65rem;
+      padding: 1px 7px;
+      border-radius: 10px;
+      background: var(--muted);
+      color: var(--text-muted);
+    }
+
+    .card-activity-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .card-activity:hover .card-activity-actions { opacity: 1; }
+
+    .card-add-activity {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border: 1.5px dashed var(--border);
+      border-radius: var(--radius-md);
+      background: none;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-family: var(--font-body);
+      transition: all 0.2s;
+      width: 100%;
+      text-align: left;
+      margin-top: 4px;
+    }
+
+    .card-add-activity:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: rgba(232,133,106,0.04);
+    }
+
+    /* ── ADD ACTIVITY MODAL ── */
+    .activity-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(44,32,56,0.4);
+      backdrop-filter: blur(4px);
+      z-index: 300;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+
+    .activity-modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .activity-modal {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: var(--shadow-lg);
+      transform: translateY(16px);
+      transition: transform 0.25s;
+    }
+
+    .activity-modal-overlay.open .activity-modal {
+      transform: translateY(0);
+    }
+
+    .activity-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+    }
+
+    .activity-modal-title {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 300;
+    }
+
+    /* Category picker */
+    .category-picker {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .cat-option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      padding: 10px 8px;
+      border-radius: var(--radius-md);
+      border: 1.5px solid var(--border);
+      cursor: pointer;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: var(--font-body);
+      background: none;
+      transition: all 0.15s;
+    }
+
+    .cat-option:hover { border-color: var(--accent); }
+
+    .cat-option.selected {
+      border-color: var(--primary);
+      background: rgba(232,133,106,0.08);
+      color: var(--text);
+    }
+
+    .cat-option-icon { font-size: 1.2rem; }
+
+    /* Source picker */
+    .source-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .source-pill {
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border);
+      background: none;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-family: var(--font-body);
+      transition: all 0.15s;
+    }
+
+    .source-pill:hover { border-color: var(--accent); color: var(--text); }
+    .source-pill.selected { background: var(--muted); border-color: var(--accent); color: var(--text); }
+
+    /* ── CATEGORY LEGEND ── */
+    .category-legend {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 28px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      flex-shrink: 0;
+      scrollbar-width: none;
+    }
+
+    .category-legend::-webkit-scrollbar { display: none; }
+
+    .legend-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      cursor: pointer;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+
+    .legend-item:hover { background: var(--muted); }
+
+    .legend-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .legend-manage {
+      margin-left: auto;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: var(--font-body);
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .legend-manage:hover { background: var(--muted); color: var(--primary); }
+
+    /* ── BUDGET BAR ── */
+    .budget-bar {
+      padding: 10px 28px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-shrink: 0;
+    }
+
+    .budget-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+    }
+
+    .budget-label { color: var(--text-muted); }
+    .budget-value { font-weight: 500; color: var(--text); }
+    .budget-divider { width: 1px; height: 16px; background: var(--border); }
+
+    .budget-progress {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .budget-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      width: 42%;
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="bg-ambience"></div>
+
+<!-- ── NAV ── -->
+<nav class="nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-icon">🧭</div>
+    <span class="nav-logo-text">TripCollective</span>
+  </a>
+  <div class="nav-links">
+    <a href="dashboard.html"      class="nav-link">Dashboard</a>
+    <a href="trip-planner.html"   class="nav-link active">Trip Planner</a>
+    <a href="explore-map.html"    class="nav-link">Explore Map</a>
+    <a href="community.html"      class="nav-link">Community</a>
+    <a href="saved-guides.html"   class="nav-link">Saved Guides</a>
+  </div>
+  <div class="nav-avatar">SC</div>
+</nav>
+
+<div class="planner-shell">
+
+  <!-- ── TRIP HEADER ── -->
+  <div class="trip-header">
+    <div class="trip-header-left">
+      <button class="trip-back" onclick="window.location='dashboard.html'">←</button>
+      <div class="trip-title-block">
+        <div class="trip-name">Amalfi Coast, Italy</div>
+        <div class="trip-meta-row">
+          <span class="trip-meta-item">📅 Sep 5 – Sep 15, 2026</span>
+          <span class="trip-meta-item">💰 $4,500 budget</span>
+          <span class="badge badge-planning"><span class="badge-dot"></span>Planning</span>
+        </div>
+      </div>
+    </div>
+    <div class="trip-header-right">
+      <div class="collab-stack">
+        <div class="collab-avatar" style="background:var(--primary)">SC</div>
+        <div class="collab-avatar" style="background:var(--secondary)">MJ</div>
+        <div class="collab-avatar" style="background:var(--accent)">KL</div>
+        <div class="collab-avatar" style="background:var(--periwinkle)">AL</div>
+      </div>
+      <button class="btn btn-ghost btn-sm">+ Invite</button>
+      <div class="view-toggle">
+        <button class="view-btn" id="btn-grid" onclick="setView('grid')">
+          ⊞ Grid
+        </button>
+        <button class="view-btn" id="btn-card" onclick="setView('card')">
+          ☰ List
+        </button>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openActivityModal()">
+        + Add Activity
+      </button>
+    </div>
+  </div>
+
+  <!-- ── BUDGET BAR ── */
+  <div class="budget-bar">
+    <div class="budget-item">
+      <span class="budget-label">Budget</span>
+      <span class="budget-value">$4,500</span>
+    </div>
+    <div class="budget-divider"></div>
+    <div class="budget-item">
+      <span class="budget-label">Planned</span>
+      <span class="budget-value" style="color:var(--primary)">$1,890</span>
+    </div>
+    <div class="budget-divider"></div>
+    <div class="budget-item">
+      <span class="budget-label">Remaining</span>
+      <span class="budget-value" style="color:var(--success)">$2,610</span>
+    </div>
+    <div class="budget-progress">
+      <div class="budget-fill"></div>
+    </div>
+    <div class="budget-item">
+      <span class="budget-label" style="font-size:0.68rem">42% planned</span>
+    </div>
+  </div>
+
+  <!-- ── CATEGORY LEGEND ── -->
+  <div class="category-legend">
+    <span class="legend-label">Categories:</span>
+    <div class="legend-item"><div class="legend-dot" style="background:#EBA8B8"></div>Travel</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2BA176"></div>Food & Drink</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#A89FC8"></div>Outdoors</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8FA3D4"></div>Culture</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2C2038"></div>Nightlife</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#E8856A"></div>Accommodation</div>
+    <button class="legend-manage" onclick="openCategoryManager()">⚙ Manage categories</button>
+  </div>
+
+  <!-- ── DAY NAV ── -->
+  <div class="day-nav" id="dayNav">
+    <button class="day-tab active" onclick="selectDay(0, this)">
+      <span class="day-tab-num">1</span>
+      <span class="day-tab-label">Sep 5 · Sat</span>
+      <span class="day-tab-dot"></span>
+    </button>
+    <button class="day-tab" onclick="selectDay(1, this)">
+      <span class="day-tab-num">2</span>
+      <span class="day-tab-label">Sep 6 · Sun</span>
+      <span class="day-tab-dot"></span>
+    </button>
+    <button class="day-tab" onclick="selectDay(2, this)">
+      <span class="day-tab-num">3</span>
+      <span class="day-tab-label">Sep 7 · Mon</span>
+      <span class="day-tab-dot"></span>
+    </button>
+    <button class="day-tab" onclick="selectDay(3, this)">
+      <span class="day-tab-num">4</span>
+      <span class="day-tab-label">Sep 8 · Tue</span>
+      <span class="day-tab-dot"></span>
+    </button>
+    <button class="day-tab" onclick="selectDay(4, this)">
+      <span class="day-tab-num">5</span>
+      <span class="day-tab-label">Sep 9 · Wed</span>
+      <span class="day-tab-dot"></span>
+    </button>
+    <button class="day-tab" onclick="selectDay(5, this)">
+      <span class="day-tab-num">6</span>
+      <span class="day-tab-label">Sep 10 · Thu</span>
+      <span class="day-tab-dot"></span>
+    </button>
+    <button class="day-nav-add" title="Add day">+</button>
+  </div>
+
+  <!-- ── MAIN AREA ── -->
+  <div class="planner-main">
+
+    <!-- ITINERARY PANEL -->
+    <div class="itinerary-panel">
+
+      <!-- ── GRID VIEW ── -->
+      <div class="grid-view" id="grid-view" style="--day-count:3">
+
+        <div class="grid-header-row">
+          <div class="grid-time-header">Time</div>
+          <div class="grid-day-header today">
+            <div class="grid-day-name">Saturday</div>
+            <div class="grid-day-date">Sep 5</div>
+            <div class="grid-day-location">📍 Amalfi</div>
+          </div>
+          <div class="grid-day-header">
+            <div class="grid-day-name">Sunday</div>
+            <div class="grid-day-date">Sep 6</div>
+            <div class="grid-day-location">📍 Positano</div>
+          </div>
+          <div class="grid-day-header">
+            <div class="grid-day-name">Monday</div>
+            <div class="grid-day-date">Sep 7</div>
+            <div class="grid-day-location">📍 Ravello</div>
+          </div>
+        </div>
+
+        <div class="grid-body" id="gridBody">
+          <!-- Rows generated by JS -->
+        </div>
+      </div>
+
+      <!-- ── CARD / LIST VIEW ── -->
+      <div class="card-view" id="card-view">
+
+        <!-- Day 1 -->
+        <div class="card-view-day animate-fade-up">
+          <div class="card-day-header">
+            <div class="card-day-num">01</div>
+            <div class="card-day-info">
+              <div class="card-day-name">Saturday, September 5</div>
+              <div class="card-day-meta">📍 Amalfi · 4 activities planned</div>
+            </div>
+            <div class="card-day-actions">
+              <button class="btn btn-ghost btn-sm" onclick="openActivityModal()">+ Add</button>
+            </div>
+          </div>
+          <div class="card-activities">
+
+            <div class="card-activity">
+              <div class="card-activity-time">10:00a</div>
+              <div class="card-activity-bar" style="background:#EBA8B8"></div>
+              <div class="card-activity-body">
+                <div class="card-activity-name">Arrive Naples, transfer to Amalfi</div>
+                <div class="card-activity-meta">
+                  <span>✈️ Travel · ~2 hrs</span>
+                  <span class="card-activity-source">Booking</span>
+                </div>
+              </div>
+              <div class="card-activity-actions">
+                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">✏️</button>
+                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">🗑</button>
+              </div>
+            </div>
+
+            <div class="card-activity">
+              <div class="card-activity-time">1:00p</div>
+              <div class="card-activity-bar" style="background:#E8856A"></div>
+              <div class="card-activity-body">
+                <div class="card-activity-name">Check in — Villa Cimbrone</div>
+                <div class="card-activity-meta">
+                  <span>🏨 Accommodation</span>
+                  <span class="card-activity-source">Direct</span>
+                </div>
+              </div>
+              <div class="card-activity-actions">
+                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">✏️</button>
+                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">🗑</button>
+              </div>
+            </div>
+
+            <div class="card-activity">
+              <div class="card-activity-time">3:30p</div>
+              <div class="card-activity-bar" style="background:#A89FC8"></div>
+              <div class="card-activity-body">
+                <div class="card-activity-name">Walk the Path of the Gods</div>
+                <div class="card-activity-meta">
+                  <span>🥾 Outdoors · 3 hrs</span>
+                  <span class="card-activity-source">Lonely Planet</span>
+                </div>
+              </div>
+              <div class="card-activity-actions">
+                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">✏️</button>
+                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">🗑</button>
+              </div>
+            </div>
+
+            <div class="card-activity">
+              <div class="card-activity-time">7:30p</div>
+              <div class="card-activity-bar" style="background:#2BA176"></div>
+              <div class="card-activity-body">
+                <div class="card-activity-name">Dinner at Ristorante Pizzeria da Gemma</div>
+                <div class="card-activity-meta">
+                  <span>🍝 Food & Drink · Dinner</span>
+                  <span class="card-activity-source">Michelin ★</span>
+                </div>
+              </div>
+              <div class="card-activity-actions">
+                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">✏️</button>
+                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">🗑</button>
+              </div>
+            </div>
+
+            <button class="card-add-activity" onclick="openActivityModal()">
+              + Add activity to Day 1
+            </button>
+
+          </div>
+        </div>
+
+        <!-- Day 2 -->
+        <div class="card-view-day animate-fade-up animate-fade-up-2">
+          <div class="card-day-header">
+            <div class="card-day-num">02</div>
+            <div class="card-day-info">
+              <div class="card-day-name">Sunday, September 6</div>
+              <div class="card-day-meta">📍 Positano · 3 activities planned</div>
+            </div>
+            <div class="card-day-actions">
+              <button class="btn btn-ghost btn-sm" onclick="openActivityModal()">+ Add</button>
+            </div>
+          </div>
+          <div class="card-activities">
+
+            <div class="card-activity">
+              <div class="card-activity-time">10:00a</div>
+              <div class="card-activity-bar" style="background:#A89FC8"></div>
+              <div class="card-activity-body">
+                <div class="card-activity-name">Boat tour to Positano & Li Galli</div>
+                <div class="card-activity-meta">
+                  <span>⛵ Outdoors · Full day</span>
+                  <span class="card-activity-source">CNT ★</span>
+                </div>
+              </div>
+              <div class="card-activity-actions">
+                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">✏️</button>
+                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">🗑</button>
+              </div>
+            </div>
+
+            <div class="card-activity">
+              <div class="card-activity-time">1:30p</div>
+              <div class="card-activity-bar" style="background:#2BA176"></div>
+              <div class="card-activity-body">
+                <div class="card-activity-name">Lunch at Da Adolfo</div>
+                <div class="card-activity-meta">
+                  <span>🍴 Food & Drink · Lunch</span>
+                  <span class="card-activity-source">Eater ★</span>
+                </div>
+              </div>
+              <div class="card-activity-actions">
+                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">✏️</button>
+                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">🗑</button>
+              </div>
+            </div>
+
+            <div class="card-activity">
+              <div class="card-activity-time">5:00p</div>
+              <div class="card-activity-bar" style="background:#8FA3D4"></div>
+              <div class="card-activity-body">
+                <div class="card-activity-name">Sunset at Sponda Church steps</div>
+                <div class="card-activity-meta">
+                  <span>🏛 Culture · 1 hr</span>
+                  <span class="card-activity-source">Sarah ★</span>
+                </div>
+              </div>
+              <div class="card-activity-actions">
+                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">✏️</button>
+                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">🗑</button>
+              </div>
+            </div>
+
+            <button class="card-add-activity" onclick="openActivityModal()">
+              + Add activity to Day 2
+            </button>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ── MAP PANEL ── -->
+    <div class="map-panel" id="mapPanel">
+      <div class="map-header">
+        <span class="map-header-title">📍 Map view</span>
+        <button class="map-toggle-btn" onclick="toggleMap()">Hide map</button>
+      </div>
+      <div class="map-placeholder">
+        <div class="map-pins">
+          <!-- Fake map pins -->
+          <div class="map-pin" style="top:25%;left:40%">
+            <div class="map-pin-dot" style="background:var(--primary)"><span class="map-pin-icon">🏨</span></div>
+            <div class="map-pin-label">Villa Cimbrone</div>
+          </div>
+          <div class="map-pin" style="top:45%;left:60%">
+            <div class="map-pin-dot" style="background:var(--success)"><span class="map-pin-icon">🍝</span></div>
+            <div class="map-pin-label">Da Gemma</div>
+          </div>
+          <div class="map-pin" style="top:35%;left:25%">
+            <div class="map-pin-dot" style="background:var(--accent)"><span class="map-pin-icon">🥾</span></div>
+            <div class="map-pin-label">Path of Gods</div>
+          </div>
+          <div class="map-pin" style="top:60%;left:50%">
+            <div class="map-pin-dot" style="background:var(--periwinkle)"><span class="map-pin-icon">⛵</span></div>
+            <div class="map-pin-label">Positano</div>
+          </div>
+          <div class="map-pin" style="top:70%;left:35%">
+            <div class="map-pin-dot" style="background:var(--success)"><span class="map-pin-icon">🍴</span></div>
+            <div class="map-pin-label">Da Adolfo</div>
+          </div>
+        </div>
+        <div class="map-overlay">
+          <div style="font-size:2rem;margin-bottom:8px">🗺</div>
+          <div style="font-size:0.78rem;color:#666;background:white;padding:8px 16px;border-radius:20px;box-shadow:var(--shadow-sm)">
+            Google Maps will load here
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── ADD ACTIVITY MODAL ── -->
+<div class="activity-modal-overlay" id="activityModal" onclick="closeOnOverlay(event)">
+  <div class="activity-modal">
+    <div class="activity-modal-header">
+      <h2 class="activity-modal-title">Add Activity</h2>
+      <button class="btn btn-icon" onclick="closeActivityModal()">✕</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Activity name</label>
+      <input class="form-input" type="text" placeholder="e.g. Sunset at Villa Rufolo">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <div class="category-picker">
+        <button class="cat-option" onclick="selectCat(this)">
+          <span class="cat-option-icon">✈️</span>Travel
+        </button>
+        <button class="cat-option selected" onclick="selectCat(this)">
+          <span class="cat-option-icon">🍴</span>Food & Drink
+        </button>
+        <button class="cat-option" onclick="selectCat(this)">
+          <span class="cat-option-icon">🥾</span>Outdoors
+        </button>
+        <button class="cat-option" onclick="selectCat(this)">
+          <span class="cat-option-icon">🏛</span>Culture
+        </button>
+        <button class="cat-option" onclick="selectCat(this)">
+          <span class="cat-option-icon">🌙</span>Nightlife
+        </button>
+        <button class="cat-option" onclick="selectCat(this)">
+          <span class="cat-option-icon">🏨</span>Stay
+        </button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label class="form-label">Start time</label>
+        <input class="form-input" type="time" value="10:00">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Duration</label>
+        <select class="form-input">
+          <option>30 mins</option>
+          <option>1 hour</option>
+          <option selected>2 hours</option>
+          <option>3 hours</option>
+          <option>Half day</option>
+          <option>Full day</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Source / Recommendation from</label>
+      <div class="source-pills">
+        <button class="source-pill" onclick="togglePill(this)">NYT</button>
+        <button class="source-pill selected" onclick="togglePill(this)">Michelin</button>
+        <button class="source-pill" onclick="togglePill(this)">Eater</button>
+        <button class="source-pill" onclick="togglePill(this)">CNT</button>
+        <button class="source-pill" onclick="togglePill(this)">Lonely Planet</button>
+        <button class="source-pill" onclick="togglePill(this)">Friend</button>
+        <button class="source-pill" onclick="togglePill(this)">Personal</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Notes (optional)</label>
+      <input class="form-input" type="text" placeholder="Reservation needed, dress code, etc.">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Estimated cost</label>
+      <input class="form-input" type="text" placeholder="e.g. $45 per person">
+    </div>
+
+    <div class="divider"></div>
+    <div class="flex" style="gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeActivityModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="closeActivityModal()">Add to itinerary</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── VIEW SWITCHING ──
+  let currentView = null;
+
+  function setView(view) {
+    document.getElementById('grid-view').classList.remove('active');
+    document.getElementById('card-view').classList.remove('active');
+    document.getElementById('btn-grid').classList.remove('active');
+    document.getElementById('btn-card').classList.remove('active');
+
+    document.getElementById(view + '-view').classList.add('active');
+    document.getElementById('btn-' + view).classList.add('active');
+    currentView = view;
+
+    // Show/hide map toggle based on view
+    if (view === 'grid') buildGrid();
+  }
+
+  // ── DEFAULT: show view picker on load ──
+  window.addEventListener('load', () => {
+    // Start with card view as demo default
+    setView('card');
+  });
+
+  // ── DAY SELECTION ──
+  function selectDay(idx, el) {
+    document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  // ── MAP TOGGLE ──
+  let mapVisible = true;
+  function toggleMap() {
+    const panel = document.getElementById('mapPanel');
+    const btn = document.querySelector('.map-toggle-btn');
+    mapVisible = !mapVisible;
+    panel.classList.toggle('collapsed', !mapVisible);
+    btn.textContent = mapVisible ? 'Hide map' : 'Show map';
+  }
+
+  // ── GRID BUILDER ──
+  const times = [
+    '6a','7a','8a','9a','10a','11a','12p',
+    '1p','2p','3p','4p','5p','6p','7p','8p','9p','10p'
+  ];
+
+  const gridData = {
+    0: { // Day 1
+      '10a': { name: 'Arrive Naples → Amalfi', cat: 'cat-travel', source: 'Booking' },
+      '1p':  { name: 'Check in — Villa Cimbrone', cat: 'cat-accommodation', source: 'Direct' },
+      '3p':  { name: 'Path of the Gods hike', cat: 'cat-outdoors', source: 'LP' },
+      '7p':  { name: 'Dinner at Da Gemma', cat: 'cat-food', source: 'Michelin ★' },
+    },
+    1: { // Day 2
+      '10a': { name: 'Boat tour to Positano', cat: 'cat-outdoors', source: 'CNT' },
+      '1p':  { name: 'Lunch at Da Adolfo', cat: 'cat-food', source: 'Eater' },
+      '5p':  { name: 'Sunset at Sponda Church', cat: 'cat-culture', source: 'Sarah' },
+      '8p':  { name: 'Drinks at La Buca', cat: 'cat-nightlife', source: 'Marcus' },
+    },
+    2: { // Day 3
+      '9a':  { name: 'Limoncello tasting', cat: 'cat-food', source: 'Eater' },
+      '11a': { name: 'Villa Rufolo gardens', cat: 'cat-culture', source: 'NYT' },
+      '2p':  { name: 'Ravello Concert Hall', cat: 'cat-culture', source: 'CNT' },
+      '7p':  { name: 'Dinner at Rossellinis', cat: 'cat-food', source: 'Michelin ★★' },
+    }
+  };
+
+  function buildGrid() {
+    const body = document.getElementById('gridBody');
+    body.innerHTML = '';
+    times.forEach(time => {
+      const row = document.createElement('div');
+      row.className = 'grid-row';
+      let html = `<div class="grid-time-cell">${time}</div>`;
+      for (let d = 0; d < 3; d++) {
+        const activity = gridData[d]?.[time];
+        if (activity) {
+          html += `<div class="grid-cell">
+            <div class="grid-activity ${activity.cat}" onclick="openActivityModal()">
+              <div class="grid-activity-name">${activity.name}</div>
+              <div class="grid-activity-source">${activity.source}</div>
+            </div>
+          </div>`;
+        } else {
+          html += `<div class="grid-cell" onclick="openActivityModal()"></div>`;
+        }
+      }
+      row.innerHTML = html;
+      body.appendChild(row);
+    });
+  }
+
+  // ── MODAL ──
+  function openActivityModal() {
+    document.getElementById('activityModal').classList.add('open');
+  }
+
+  function closeActivityModal() {
+    document.getElementById('activityModal').classList.remove('open');
+  }
+
+  function closeOnOverlay(e) {
+    if (e.target === document.getElementById('activityModal')) closeActivityModal();
+  }
+
+  function selectCat(btn) {
+    document.querySelectorAll('.cat-option').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+
+  function togglePill(btn) {
+    btn.classList.toggle('selected');
+  }
+
+  // ── CATEGORY MANAGER ──
+  function openCategoryManager() {
+    alert('Category manager coming soon! You\'ll be able to add, rename, and recolor categories here.');
+  }
+</script>
+
+</body>
+</html>
