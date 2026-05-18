@@ -325,6 +325,13 @@
     document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 </script>
-
+<script type="module">
+  import { supabase } from './supabase.js';
+  
+  // If already logged in, skip landing page
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session) window.location = 'dashboard.html';
+  });
+</script>
 </body>
 </html>
