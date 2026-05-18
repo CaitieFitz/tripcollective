@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amalfi Coast Guide — TripCollective</title>
+  <link rel="stylesheet" href="styles/global.css">
+  <style>
+    :root {
+      --day1: #E8856A;
+      --day2: #EBA8B8;
+      --day3: #A89FC8;
+      --day4: #8FA3D4;
+      --day5: #2BA176;
+    }
+
+    .guide-progress { position:fixed; top:var(--nav-height); left:0; right:0; height:2px; background:var(--border); z-index:50; }
+    .guide-progress-fill { height:100%; background:linear-gradient(to right,var(--primary),var(--secondary),var(--accent)); width:0%; transition:width 0.1s; }
+
+    .guide-hero { position:relative; height:420px; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; }
+    .guide-hero-bg { position:absolute; inset:0; background: linear-gradient(to bottom,rgba(44,32,56,0.05) 0%,rgba(44,32,56,0.72) 100%), linear-gradient(135deg,#a8c4b8 0%,#88a898 30%,#6888a0 60%,#c8b090 100%); display:flex; align-items:center; justify-content:center; font-size:8rem; }
+    .guide-hero-content { position:relative; z-index:2; padding:0 48px 36px; max-width:1200px; width:100%; margin:0 auto; }
+    .guide-hero-eyebrow { display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,0.15); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.2); border-radius:var(--radius-full); padding:5px 14px; font-size:0.7rem; color:rgba(255,255,255,0.9); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:12px; }
+    .guide-hero-title { font-family:var(--font-display); font-size:clamp(2.2rem,5vw,3.8rem); font-weight:300; color:white; letter-spacing:-0.03em; line-height:1; margin-bottom:10px; }
+    .guide-hero-subtitle { font-size:0.9rem; color:rgba(255,255,255,0.72); margin-bottom:20px; line-height:1.6; max-width:520px; }
+    .guide-hero-meta { display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+    .guide-hero-author { display:flex; align-items:center; gap:10px; }
+    .guide-hero-avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--primary),var(--secondary)); border:2px solid rgba(255,255,255,0.3); display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:600; color:white; }
+    .guide-hero-author-name { font-size:0.82rem; color:white; font-weight:500; }
+    .guide-hero-author-sub  { font-size:0.66rem; color:rgba(255,255,255,0.55); }
+    .guide-hero-stat { font-size:0.75rem; color:rgba(255,255,255,0.72); }
+    .guide-hero-actions { margin-left:auto; display:flex; gap:8px; }
+    .btn-glass { background:rgba(255,255,255,0.15); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.25); color:white; transition:all 0.2s; }
+    .btn-glass:hover { background:rgba(255,255,255,0.25); transform:translateY(-1px); }
+
+    .guide-body { max-width:1200px; margin:0 auto; padding:36px 48px 80px; display:grid; grid-template-columns:1fr 300px; gap:44px; align-items:start; }
+
+    .guide-stats-bar { display:flex; border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:32px; background:var(--surface); }
+    .guide-stat { flex:1; padding:14px 16px; border-right:1px solid var(--border); text-align:center; }
+    .guide-stat:last-child { border-right:none; }
+    .guide-stat-icon { font-size:1rem; margin-bottom:3px; }
+    .guide-stat-val { font-family:var(--font-display); font-size:1.2rem; font-weight:600; color:var(--text); margin-bottom:1px; }
+    .guide-stat-label { font-size:0.6rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; }
+
+    .guide-overview { font-size:0.88rem; line-height:1.8; color:var(--text); margin-bottom:32px; padding-bottom:28px; border-bottom:1px solid var(--border); }
+
+    .guide-section { margin-bottom:40px; }
+    .guide-section-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+    .guide-section-icon { width:32px; height:32px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:0.9rem; flex-shrink:0; }
+    .guide-section-title { font-family:var(--font-display); font-size:1.3rem; font-weight:600; letter-spacing:-0.01em; }
+    .guide-section-count { margin-left:auto; font-size:0.7rem; color:var(--text-muted); background:var(--muted); padding:3px 10px; border-radius:var(--radius-full); }
+
+    /* Day filter */
+    .day-filter-row { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
+    .day-filter-label { font-size:0.68rem; color:var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-right:2px; }
+    .day-pill { padding:5px 12px; border-radius:var(--radius-full); font-size:0.72rem; font-weight:500; cursor:pointer; border:1.5px solid var(--border); background:none; color:var(--text-muted); transition:all 0.15s; font-family:var(--font-body); display:inline-flex; align-items:center; gap:5px; }
+    .day-pill:hover { color:var(--text); border-color:var(--accent); }
+    .day-pill.active { color:white; border-color:transparent; }
+    .day-pill[data-day="all"].active { background:var(--plum); }
+    .day-pill[data-day="1"].active   { background:var(--day1); }
+    .day-pill[data-day="2"].active   { background:var(--day2); }
+    .day-pill[data-day="3"].active   { background:var(--day3); }
+    .day-pill[data-day="4"].active   { background:var(--day4); }
+    .day-pill[data-day="5"].active   { background:var(--day5); }
+
+    .day-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; display:inline-block; }
+
+    /* Place cards */
+    .place-list { display:flex; flex-direction:column; gap:12px; }
+    .place-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px 20px; transition:all 0.2s; position:relative; overflow:hidden; }
+    .place-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; }
+    .place-card.food::before     { background:var(--success); }
+    .place-card.outdoors::before { background:var(--accent); }
+    .place-card.culture::before  { background:var(--periwinkle); }
+    .place-card.stay::before     { background:var(--primary); }
+    .place-card:hover { box-shadow:var(--shadow-md); transform:translateY(-2px); }
+    .place-card.hidden { display:none; }
+
+    .place-card-row1 { display:flex; align-items:flex-start; gap:12px; margin-bottom:10px; }
+    .place-card-num { font-family:var(--font-display); font-size:1.2rem; font-weight:300; color:var(--text-muted); line-height:1; width:24px; flex-shrink:0; padding-top:2px; }
+    .place-card-main { flex:1; min-width:0; }
+    .place-card-name { font-family:var(--font-display); font-size:1.05rem; font-weight:600; margin-bottom:3px; line-height:1.2; }
+    .place-card-location { font-size:0.72rem; color:var(--text-muted); margin-bottom:7px; }
+    .place-card-tags { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
+
+    .source-badge { display:inline-flex; align-items:center; gap:3px; font-size:0.6rem; font-weight:600; padding:2px 7px; border-radius:var(--radius-full); letter-spacing:0.03em; }
+    .source-michelin { background:rgba(221,56,44,0.1);    color:#DD382C; border:1px solid rgba(221,56,44,0.2); }
+    .source-nyt      { background:rgba(0,0,0,0.06);       color:#333;    border:1px solid rgba(0,0,0,0.12); }
+    .source-eater    { background:rgba(232,133,106,0.1);  color:#b5522e; border:1px solid rgba(232,133,106,0.2); }
+    .source-cnt      { background:rgba(143,163,212,0.12); color:#4a6aaa; border:1px solid rgba(143,163,212,0.2); }
+    .source-lp       { background:rgba(43,161,118,0.1);   color:#1a7a58; border:1px solid rgba(43,161,118,0.2); }
+    .source-friend   { background:rgba(235,168,184,0.15); color:#a05070; border:1px solid rgba(235,168,184,0.25); }
+
+    .day-tag { display:inline-flex; align-items:center; font-size:0.6rem; font-weight:500; padding:2px 8px; border-radius:var(--radius-full); color:white; }
+
+    /* Notes */
+    .place-card-notes { display:flex; flex-direction:column; gap:7px; margin-bottom:10px; }
+    .note-ai { background:var(--muted); border-radius:var(--radius-md); padding:9px 12px; }
+    .note-label { font-size:0.6rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px; display:flex; align-items:center; gap:6px; }
+    .note-ai-text { font-size:0.78rem; color:var(--text); line-height:1.6; }
+    .note-personal { background:linear-gradient(135deg,rgba(232,133,106,0.06),rgba(235,168,184,0.06)); border:1px solid rgba(232,133,106,0.16); border-radius:var(--radius-md); padding:9px 12px; }
+    .note-personal-author { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+    .note-personal-avatar { width:16px; height:16px; border-radius:50%; background:linear-gradient(135deg,var(--primary),var(--secondary)); display:flex; align-items:center; justify-content:center; font-size:0.4rem; font-weight:700; color:white; flex-shrink:0; }
+    .note-personal-name { font-size:0.6rem; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:var(--primary); }
+    .note-personal-text { font-size:0.78rem; color:var(--text); line-height:1.6; font-style:italic; }
+    .note-personal-text strong { font-style:normal; color:var(--primary); }
+    .place-card-tip { background:rgba(232,133,106,0.07); border:1px solid rgba(232,133,106,0.18); border-radius:var(--radius-md); padding:8px 12px; font-size:0.75rem; color:var(--text); line-height:1.55; }
+    .place-card-tip strong { color:var(--primary); }
+
+    .place-card-meta { display:flex; gap:14px; font-size:0.7rem; color:var(--text-muted); margin-top:10px; padding-top:10px; border-top:1px solid var(--border); flex-wrap:wrap; }
+    .place-card-actions { display:flex; gap:6px; margin-top:8px; align-items:center; }
+    .place-card-saved { margin-left:auto; font-size:0.68rem; color:var(--text-muted); }
+
+    /* Timeline */
+    .timeline { position:relative; padding-left:22px; }
+    .timeline::before { content:''; position:absolute; left:6px; top:8px; bottom:8px; width:1px; background:var(--border); }
+    .timeline-day { margin-bottom:20px; position:relative; }
+    .timeline-day-dot { position:absolute; left:-17px; top:5px; width:10px; height:10px; border-radius:50%; border:2px solid var(--surface); }
+    .timeline-day-header { display:flex; align-items:baseline; gap:8px; margin-bottom:8px; }
+    .timeline-day-label { font-size:0.7rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; }
+    .timeline-day-location { font-size:0.68rem; color:var(--text-muted); font-weight:400; text-transform:none; letter-spacing:0; }
+    .timeline-items { display:flex; flex-direction:column; gap:5px; }
+    .timeline-item { display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); font-size:0.8rem; transition:background 0.15s; }
+    .timeline-item:hover { background:var(--muted); }
+    .timeline-item-time { font-size:0.65rem; color:var(--text-muted); width:38px; flex-shrink:0; font-weight:500; }
+    .timeline-item-bar { width:3px; height:26px; border-radius:3px; flex-shrink:0; }
+    .timeline-item-name { flex:1; font-weight:500; }
+    .timeline-item-source { font-size:0.6rem; padding:2px 7px; border-radius:10px; background:var(--muted); color:var(--text-muted); flex-shrink:0; }
+
+    /* Sidebar */
+    .guide-sidebar { position:sticky; top:calc(var(--nav-height) + 20px); display:flex; flex-direction:column; gap:14px; }
+    .sidebar-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+    .sidebar-box-header { padding:12px 16px; border-bottom:1px solid var(--border); font-size:0.75rem; font-weight:600; }
+    .sidebar-box-body { padding:14px 16px; }
+    .sidebar-map { height:150px; background:linear-gradient(135deg,#e8f0e8,#d0e0d0); position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:6px; }
+    .sidebar-map::before { content:''; position:absolute; inset:0; background-image:linear-gradient(rgba(160,192,160,0.3) 1px,transparent 1px),linear-gradient(90deg,rgba(160,192,160,0.3) 1px,transparent 1px); background-size:22px 22px; }
+    .sidebar-map-label { font-size:0.7rem; background:white; padding:4px 12px; border-radius:20px; box-shadow:var(--shadow-sm); position:relative; z-index:1; color:var(--text-muted); }
+
+    .day-legend { display:flex; flex-direction:column; gap:7px; }
+    .day-legend-item { display:flex; align-items:center; gap:8px; font-size:0.75rem; }
+    .day-legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .day-legend-name { font-weight:500; flex:1; }
+    .day-legend-loc { color:var(--text-muted); font-size:0.68rem; }
+
+    .author-card { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+    .author-card-avatar { width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,var(--primary),var(--secondary)); display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:500; color:white; flex-shrink:0; }
+    .author-card-name { font-weight:600; font-size:0.85rem; margin-bottom:2px; }
+    .author-card-meta { font-size:0.68rem; color:var(--text-muted); }
+    .author-card-bio { font-size:0.75rem; color:var(--text-muted); line-height:1.6; margin-bottom:10px; }
+
+    .guide-tags { display:flex; flex-wrap:wrap; gap:5px; }
+    .guide-tag { padding:4px 10px; border-radius:var(--radius-full); font-size:0.68rem; background:var(--muted); color:var(--text-muted); cursor:pointer; transition:all 0.15s; border:1px solid transparent; }
+    .guide-tag:hover { border-color:var(--accent); color:var(--text); }
+
+    /* Comments */
+    .comments-section { margin-top:44px; padding-top:32px; border-top:1px solid var(--border); }
+    .comments-title { font-family:var(--font-display); font-size:1.4rem; font-weight:300; margin-bottom:18px; }
+    .comment-input-row { display:flex; gap:12px; margin-bottom:20px; }
+    .comment-avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,var(--primary),var(--secondary)); display:flex; align-items:center; justify-content:center; font-size:0.65rem; font-weight:600; color:white; flex-shrink:0; }
+    .comment-input-wrap { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:10px 14px; transition:border-color 0.2s; }
+    .comment-input-wrap:focus-within { border-color:var(--ring); box-shadow:0 0 0 3px rgba(143,163,212,0.12); }
+    .comment-input { width:100%; border:none; outline:none; font-family:var(--font-body); font-size:0.82rem; resize:none; min-height:48px; background:none; color:var(--text); }
+    .comment-input::placeholder { color:var(--text-muted); }
+    .comment-input-footer { display:flex; justify-content:flex-end; margin-top:6px; }
+    .comment { display:flex; gap:10px; margin-bottom:14px; }
+    .comment-body { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:12px 14px; }
+    .comment-header { display:flex; align-items:center; gap:8px; margin-bottom:5px; }
+    .comment-author { font-weight:600; font-size:0.8rem; }
+    .comment-time { font-size:0.67rem; color:var(--text-muted); margin-left:auto; }
+    .comment-text { font-size:0.8rem; line-height:1.6; }
+    .comment-actions { display:flex; gap:10px; margin-top:7px; }
+    .comment-action { font-size:0.67rem; color:var(--text-muted); background:none; border:none; cursor:pointer; font-family:var(--font-body); padding:0; transition:color 0.15s; }
+    .comment-action:hover { color:var(--primary); }
+    .forum-cta { background:linear-gradient(135deg,rgba(44,32,56,0.03),rgba(168,159,200,0.06)); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px 20px; display:flex; align-items:center; gap:14px; margin-top:20px; cursor:pointer; transition:all 0.2s; }
+    .forum-cta:hover { border-color:var(--accent); box-shadow:var(--shadow-sm); }
+    .forum-cta-icon { font-size:1.6rem; flex-shrink:0; }
+    .forum-cta-title { font-family:var(--font-display); font-size:0.95rem; font-weight:600; margin-bottom:2px; }
+    .forum-cta-sub { font-size:0.72rem; color:var(--text-muted); line-height:1.5; }
+
+    @media (max-width:900px) {
+      .guide-body { grid-template-columns:1fr; padding:24px 20px 60px; }
+      .guide-sidebar { position:static; }
+      .guide-hero-content { padding:0 24px 28px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="guide-progress"><div class="guide-progress-fill" id="progressFill"></div></div>
+<div class="bg-ambience"></div>
+
+<nav class="nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-icon">🧭</div>
+    <span class="nav-logo-text">TripCollective</span>
+  </a>
+  <div class="nav-links">
+    <a href="dashboard.html"    class="nav-link">Dashboard</a>
+    <a href="trip-planner.html" class="nav-link">Trip Planner</a>
+    <a href="explore-map.html"  class="nav-link">Explore Map</a>
+    <a href="community.html"    class="nav-link active">Community</a>
+    <a href="saved-guides.html" class="nav-link">Saved Guides</a>
+  </div>
+  <a href="profile.html" class="nav-avatar" title="Profile">SC</a>
+</nav>
+
+<div class="guide-hero">
+  <div class="guide-hero-bg">🌊</div>
+  <div class="guide-hero-content">
+    <div class="guide-hero-eyebrow"><span>📖</span> Published Guide · 10 days</div>
+    <h1 class="guide-hero-title">Amalfi Coast, Italy</h1>
+    <p class="guide-hero-subtitle">Ten days on the world's most dramatic coastline — the restaurants, hikes, hidden coves, and one very perfect limoncello.</p>
+    <div class="guide-hero-meta">
+      <div class="guide-hero-author">
+        <div class="guide-hero-avatar">CF</div>
+        <div>
+          <div class="guide-hero-author-name">Caitie F.</div>
+          <div class="guide-hero-author-sub">@caitiefitz · Sep 2026</div>
+        </div>
+      </div>
+      <span class="guide-hero-stat">❤️ 412 saves</span>
+      <span class="guide-hero-stat">💬 28 comments</span>
+      <span class="guide-hero-stat">📍 19 places</span>
+      <div class="guide-hero-actions">
+        <button class="btn btn-glass btn-sm">❤️ Save</button>
+        <button class="btn btn-primary btn-sm">+ Use as Template</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="guide-body">
+<div>
+
+  <div class="guide-stats-bar animate-fade-up">
+    <div class="guide-stat"><div class="guide-stat-icon">📅</div><div class="guide-stat-val">10</div><div class="guide-stat-label">Days</div></div>
+    <div class="guide-stat"><div class="guide-stat-icon">👥</div><div class="guide-stat-val">4</div><div class="guide-stat-label">Travellers</div></div>
+    <div class="guide-stat"><div class="guide-stat-icon">📍</div><div class="guide-stat-val">19</div><div class="guide-stat-label">Places</div></div>
+    <div class="guide-stat"><div class="guide-stat-icon">🍴</div><div class="guide-stat-val">8</div><div class="guide-stat-label">Restaurants</div></div>
+    <div class="guide-stat"><div class="guide-stat-icon">✦</div><div class="guide-stat-val">6</div><div class="guide-stat-label">Sources</div></div>
+  </div>
+
+  <div class="guide-overview animate-fade-up animate-fade-up-1">
+    The Amalfi Coast lives up to its reputation — and then quietly exceeds it. Ten days across Amalfi, Ravello, and Positano with a day trip to Capri. This guide covers only what we'd do again, with every recommendation sourced so you know exactly why it made the list.
+    <br><br><strong>One thing I wish I'd known:</strong> base yourself in Ravello. Quieter, higher up, easier for everything. Positano is best as a day trip in September — beautiful but heaving with tourists.
+  </div>
+
+  <!-- WHERE TO EAT -->
+  <div class="guide-section animate-fade-up animate-fade-up-2">
+    <div class="guide-section-header">
+      <div class="guide-section-icon" style="background:rgba(43,161,118,0.1)">🍴</div>
+      <span class="guide-section-title">Where to Eat</span>
+      <span class="guide-section-count">8 restaurants</span>
+    </div>
+    <div class="day-filter-row">
+      <span class="day-filter-label">Filter by day:</span>
+      <button class="day-pill active" data-day="all" data-section="food" onclick="filterDay(this,'food')">All</button>
+      <button class="day-pill" data-day="1" data-section="food" onclick="filterDay(this,'food')"><span class="day-dot" style="background:var(--day1)"></span>Day 1</button>
+      <button class="day-pill" data-day="2" data-section="food" onclick="filterDay(this,'food')"><span class="day-dot" style="background:var(--day2)"></span>Day 2</button>
+      <button class="day-pill" data-day="3" data-section="food" onclick="filterDay(this,'food')"><span class="day-dot" style="background:var(--day3)"></span>Day 3</button>
+      <button class="day-pill" data-day="4" data-section="food" onclick="filterDay(this,'food')"><span class="day-dot" style="background:var(--day4)"></span>Day 4+</button>
+    </div>
+    <div class="place-list" id="food-list">
+
+      <div class="place-card food" data-day="1">
+        <div class="place-card-row1">
+          <div class="place-card-num">01</div>
+          <div class="place-card-main">
+            <div class="place-card-name">Ristorante Da Gemma</div>
+            <div class="place-card-location">📍 Amalfi · Via Fra Gerardo Sasso</div>
+            <div class="place-card-tags">
+              <span class="source-badge source-michelin">✦ Michelin ★</span>
+              <span class="source-badge source-nyt">NYT</span>
+              <span class="source-badge source-eater">Eater</span>
+              <span class="day-tag" style="background:var(--day1)">Day 1</span>
+            </div>
+          </div>
+        </div>
+        <div class="place-card-notes">
+          <div class="note-ai">
+            <div class="note-label"><span>About</span><span class="source-badge source-michelin">✦ Michelin</span></div>
+            <div class="note-ai-text">Family-owned since 1872, specialising in hand-rolled pasta and morning-caught seafood. The scialatielli ai frutti di mare is the kitchen's signature dish.</div>
+          </div>
+          <div class="note-personal">
+            <div class="note-personal-author"><div class="note-personal-avatar">CF</div><span class="note-personal-name">Caitie's note</span></div>
+            <div class="note-personal-text">Get the <strong>limone pasta</strong>. You won't regret it. Ask for the terrace table — non-negotiable.</div>
+          </div>
+          <div class="place-card-tip"><strong>💡 Tip:</strong> Book 3+ weeks ahead for dinner. Lunch is slightly easier to get.</div>
+        </div>
+        <div class="place-card-meta"><span>💰 $$$$</span><span>🕖 Dinner from 7pm</span><span>📞 Reservations essential</span></div>
+        <div class="place-card-actions">
+          <button class="btn btn-primary btn-sm">+ Add to Trip</button>
+          <button class="btn btn-ghost btn-sm">Map</button>
+          <span class="place-card-saved">84 travellers added this</span>
+        </div>
+      </div>
+
+      <div class="place-card food" data-day="2">
+        <div class="place-card-row1">
+          <div class="place-card-num">02</div>
+          <div class="place-card-main">
+            <div class="place-card-name">Da Adolfo</div>
+            <div class="place-card-location">📍 Laurito Beach, Positano · boat access only</div>
+            <div class="place-card-tags">
+              <span class="source-badge source-eater">Eater</span>
+              <span class="source-badge source-friend">👤 Sarah ★★★</span>
+              <span class="day-tag" style="background:var(--day2)">Day 2</span>
+            </div>
+          </div>
+        </div>
+        <div class="place-card-notes">
+          <div class="note-personal">
+            <div class="note-personal-author"><div class="note-personal-avatar">CF</div><span class="note-personal-name">Caitie's note</span></div>
+            <div class="note-personal-text">Go for lunch, stay for the afternoon swim. They ring a bell when the last boat leaves — easy to miss. The mozzarella grilled on lemon leaves is unlike anything I've eaten.</div>
+          </div>
+          <div class="place-card-tip"><strong>💡 Tip:</strong> Red-striped boat from Positano harbour. Cash only on the boat.</div>
+        </div>
+        <div class="place-card-meta"><span>💰 $$$</span><span>🕐 Lunch only</span><span>⛵ Boat from harbour</span></div>
+        <div class="place-card-actions">
+          <button class="btn btn-primary btn-sm">+ Add to Trip</button>
+          <button class="btn btn-ghost btn-sm">Map</button>
+          <span class="place-card-saved">61 travellers added this</span>
+        </div>
+      </div>
+
+      <div class="place-card food" data-day="3">
+        <div class="place-card-row1">
+          <div class="place-card-num">03</div>
+          <div class="place-card-main">
+            <div class="place-card-name">Rossellinis ★★</div>
+            <div class="place-card-location">📍 Palazzo Avino, Ravello</div>
+            <div class="place-card-tags">
+              <span class="source-badge source-michelin">✦ Michelin ★★</span>
+              <span class="source-badge source-cnt">CNT</span>
+              <span class="day-tag" style="background:var(--day3)">Day 3</span>
+            </div>
+          </div>
+        </div>
+        <div class="place-card-notes">
+          <div class="note-personal">
+            <div class="note-personal-author"><div class="note-personal-avatar">CF</div><span class="note-personal-name">Caitie's note</span></div>
+            <div class="note-personal-text">The splurge of the trip. Do the tasting menu — paced perfectly and the sunset terrace view is one of the most beautiful things I've seen while eating. Smart casual is enforced.</div>
+          </div>
+          <div class="place-card-tip"><strong>💡 Tip:</strong> Book the terrace table specifically — the indoor room doesn't compare.</div>
+        </div>
+        <div class="place-card-meta"><span>💰 $$$$$</span><span>🕖 Dinner only</span><span>👔 Smart casual</span></div>
+        <div class="place-card-actions">
+          <button class="btn btn-primary btn-sm">+ Add to Trip</button>
+          <button class="btn btn-ghost btn-sm">Map</button>
+          <span class="place-card-saved">39 travellers added this</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- THINGS TO DO -->
+  <div class="guide-section">
+    <div class="guide-section-header">
+      <div class="guide-section-icon" style="background:rgba(168,159,200,0.1)">🥾</div>
+      <span class="guide-section-title">Things to Do</span>
+      <span class="guide-section-count">7 activities</span>
+    </div>
+    <div class="day-filter-row">
+      <span class="day-filter-label">Filter by day:</span>
+      <button class="day-pill active" data-day="all" data-section="act" onclick="filterDay(this,'act')">All</button>
+      <button class="day-pill" data-day="1" data-section="act" onclick="filterDay(this,'act')"><span class="day-dot" style="background:var(--day1)"></span>Day 1</button>
+      <button class="day-pill" data-day="2" data-section="act" onclick="filterDay(this,'act')"><span class="day-dot" style="background:var(--day2)"></span>Day 2</button>
+      <button class="day-pill" data-day="3" data-section="act" onclick="filterDay(this,'act')"><span class="day-dot" style="background:var(--day3)"></span>Day 3</button>
+      <button class="day-pill" data-day="4" data-section="act" onclick="filterDay(this,'act')"><span class="day-dot" style="background:var(--day4)"></span>Day 4+</button>
+    </div>
+    <div class="place-list" id="act-list">
+
+      <div class="place-card outdoors" data-day="1">
+        <div class="place-card-row1">
+          <div class="place-card-num">01</div>
+          <div class="place-card-main">
+            <div class="place-card-name">Path of the Gods (Sentiero degli Dei)</div>
+            <div class="place-card-location">📍 Agerola → Nocelle · ~8km</div>
+            <div class="place-card-tags">
+              <span class="source-badge source-lp">Lonely Planet</span>
+              <span class="source-badge source-cnt">CNT</span>
+              <span class="source-badge source-friend">👤 Marcus ★★★</span>
+              <span class="day-tag" style="background:var(--day1)">Day 1</span>
+            </div>
+          </div>
+        </div>
+        <div class="place-card-notes">
+          <div class="note-ai">
+            <div class="note-label"><span>About</span><span class="source-badge source-lp">Lonely Planet</span></div>
+            <div class="note-ai-text">Approximately 8 kilometres (5 miles) from Agerola to Nocelle, with sweeping panoramic views of the Mediterranean and the Amalfi coastline. Moderate difficulty, best walked west to east.</div>
+          </div>
+          <div class="note-personal">
+            <div class="note-personal-author"><div class="note-personal-avatar">CF</div><span class="note-personal-name">Caitie's note</span></div>
+            <div class="note-personal-text">Best hike of the trip. Start before 9am. After Nocelle, take the 1,700 steps to Positano and reward yourself with lunch at Da Adolfo. <strong>Wear proper shoes.</strong></div>
+          </div>
+        </div>
+        <div class="place-card-meta"><span>⏱ 3-4 hrs</span><span>🆓 Free</span><span>💪 Moderate</span></div>
+        <div class="place-card-actions">
+          <button class="btn btn-primary btn-sm">+ Add to Trip</button>
+          <button class="btn btn-ghost btn-sm">Map</button>
+          <span class="place-card-saved">127 travellers added this</span>
+        </div>
+      </div>
+
+      <div class="place-card outdoors" data-day="2">
+        <div class="place-card-row1">
+          <div class="place-card-num">02</div>
+          <div class="place-card-main">
+            <div class="place-card-name">Boat Tour to Li Galli Islands</div>
+            <div class="place-card-location">📍 From Positano harbour</div>
+            <div class="place-card-tags">
+              <span class="source-badge source-cnt">CNT</span>
+              <span class="day-tag" style="background:var(--day2)">Day 2</span>
+            </div>
+          </div>
+        </div>
+        <div class="place-card-notes">
+          <div class="note-personal">
+            <div class="note-personal-author"><div class="note-personal-avatar">CF</div><span class="note-personal-name">Caitie's note</span></div>
+            <div class="note-personal-text">Book a private boat — split four ways it's totally reasonable and the difference is significant. Ask to stop at the grotto on the way back.</div>
+          </div>
+          <div class="place-card-tip"><strong>💡 Tip:</strong> Check weather the night before — boats cancel if seas are rough.</div>
+        </div>
+        <div class="place-card-meta"><span>⏱ Half day</span><span>💰 ~$120pp private</span></div>
+        <div class="place-card-actions">
+          <button class="btn btn-primary btn-sm">+ Add to Trip</button>
+          <button class="btn btn-ghost btn-sm">Map</button>
+          <span class="place-card-saved">98 travellers added this</span>
+        </div>
+      </div>
+
+      <div class="place-card culture" data-day="3">
+        <div class="place-card-row1">
+          <div class="place-card-num">03</div>
+          <div class="place-card-main">
+            <div class="place-card-name">Villa Rufolo Gardens</div>
+            <div class="place-card-location">📍 Piazza Duomo, Ravello</div>
+            <div class="place-card-tags">
+              <span class="source-badge source-nyt">NYT</span>
+              <span class="source-badge source-friend">👤 Caitie ★★★</span>
+              <span class="day-tag" style="background:var(--day3)">Day 3</span>
+            </div>
+          </div>
+        </div>
+        <div class="place-card-notes">
+          <div class="note-personal">
+            <div class="note-personal-author"><div class="note-personal-avatar">CF</div><span class="note-personal-name">Caitie's note</span></div>
+            <div class="note-personal-text">The garden terrace at sunset is where Wagner composed — you'll understand why immediately. Go late afternoon, combine with a walk through Ravello's quiet streets.</div>
+          </div>
+        </div>
+        <div class="place-card-meta"><span>⏱ 1-2 hrs</span><span>💰 €7 entry</span><span>🌅 Best at golden hour</span></div>
+        <div class="place-card-actions">
+          <button class="btn btn-primary btn-sm">+ Add to Trip</button>
+          <button class="btn btn-ghost btn-sm">Map</button>
+          <span class="place-card-saved">93 travellers added this</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- DAY BY DAY -->
+  <div class="guide-section">
+    <div class="guide-section-header">
+      <div class="guide-section-icon" style="background:rgba(232,133,106,0.1)">📅</div>
+      <span class="guide-section-title">Day by Day</span>
+      <span class="guide-section-count">10 days</span>
+    </div>
+    <div class="timeline">
+
+      <div class="timeline-day">
+        <div class="timeline-day-dot" style="background:var(--day1)"></div>
+        <div class="timeline-day-header">
+          <span class="timeline-day-label" style="color:var(--day1)">Day 1 · Sep 5</span>
+          <span class="timeline-day-location">📍 Arrive Amalfi</span>
+        </div>
+        <div class="timeline-items">
+          <div class="timeline-item"><span class="timeline-item-time">10am</span><div class="timeline-item-bar" style="background:var(--day1)"></div><span class="timeline-item-name">Arrive Naples → transfer to Amalfi</span><span class="timeline-item-source">✈️ Travel</span></div>
+          <div class="timeline-item"><span class="timeline-item-time">1pm</span><div class="timeline-item-bar" style="background:var(--day1)"></div><span class="timeline-item-name">Check in — Villa Cimbrone</span><span class="timeline-item-source">🏨 Hotel</span></div>
+          <div class="timeline-item"><span class="timeline-item-time">4pm</span><div class="timeline-item-bar" style="background:var(--day1)"></div><span class="timeline-item-name">Path of the Gods hike</span><span class="timeline-item-source">LP · CNT</span></div>
+          <div class="timeline-item"><span class="timeline-item-time">7:30pm</span><div class="timeline-item-bar" style="background:var(--day1)"></div><span class="timeline-item-name">Dinner — Da Gemma</span><span class="timeline-item-source">✦ Michelin</span></div>
+        </div>
+      </div>
+
+      <div class="timeline-day">
+        <div class="timeline-day-dot" style="background:var(--day2)"></div>
+        <div class="timeline-day-header">
+          <span class="timeline-day-label" style="color:var(--day2)">Day 2 · Sep 6</span>
+          <span class="timeline-day-location">📍 Positano</span>
+        </div>
+        <div class="timeline-items">
+          <div class="timeline-item"><span class="timeline-item-time">10am</span><div class="timeline-item-bar" style="background:var(--day2)"></div><span class="timeline-item-name">Boat tour to Li Galli Islands</span><span class="timeline-item-source">CNT</span></div>
+          <div class="timeline-item"><span class="timeline-item-time">1:30pm</span><div class="timeline-item-bar" style="background:var(--day2)"></div><span class="timeline-item-name">Lunch — Da Adolfo</span><span class="timeline-item-source">Eater</span></div>
+          <div class="timeline-item"><span class="timeline-item-time">5pm</span><div class="timeline-item-bar" style="background:var(--day2)"></div><span class="timeline-item-name">Sunset at Sponda Church</span><span class="timeline-item-source">🏛 Culture</span></div>
+          <div class="timeline-item"><span class="timeline-item-time">8pm</span><div class="timeline-item-bar" style="background:var(--day2)"></div><span class="timeline-item-name">Dinner in Positano town</span><span class="timeline-item-source">🍴 Food</span></div>
+        </div>
+      </div>
+
+      <div class="timeline-day">
+        <div class="timeline-day-dot" style="background:var(--day3)"></div>
+        <div class="timeline-day-header">
+          <span class="timeline-day-label" style="color:var(--day3)">Day 3 · Sep 7</span>
+          <span class="timeline-day-location">📍 Ravello</span>
+        </div>
+        <div class="timeline-items">
+          <div class="timeline-item"><span class="timeline-item-time">9am</span><div class="timeline-item-bar" style="background:var(--day3)"></div><span class="timeline-item-name">Limoncello tasting — Antiche Distillerie</span><span class="timeline-item-source">Eater</span></div>
+          <div class="timeline-item"><span class="timeline-item-time">11am</span><div class="timeline-item-bar" style="background:var(--day3)"></div><span class="timeline-item-name">Villa Rufolo gardens</span><span class="timeline-item-source">NYT</span></div>
+          <div class="timeline-item"><span class="timeline-item-time">7:30pm</span><div class="timeline-item-bar" style="background:var(--day3)"></div><span class="timeline-item-name">Dinner — Rossellinis ★★</span><span class="timeline-item-source">✦ Michelin</span></div>
+        </div>
+      </div>
+
+      <div class="timeline-day">
+        <div class="timeline-day-dot" style="background:var(--border)"></div>
+        <div class="timeline-day-header">
+          <span class="timeline-day-label" style="color:var(--text-muted)">Days 4–10</span>
+          <span class="timeline-day-location">📍 Amalfi · Capri · Sorrento</span>
+        </div>
+        <div class="timeline-items">
+          <div class="timeline-item" style="border-style:dashed;color:var(--text-muted);cursor:pointer" onclick="alert('Use as Template to unlock the full 10-day plan!')">
+            <span class="timeline-item-time" style="color:var(--text-muted)">—</span>
+            <div class="timeline-item-bar" style="background:var(--border)"></div>
+            <span class="timeline-item-name" style="color:var(--text-muted)">Use as Template to see the full 10-day plan →</span>
+            <span class="timeline-item-source">7 more days</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- COMMENTS -->
+  <div class="comments-section">
+    <h3 class="comments-title">28 Comments</h3>
+    <div class="comment-input-row">
+      <div class="comment-avatar">SC</div>
+      <div class="comment-input-wrap">
+        <textarea class="comment-input" placeholder="Ask a question or share your experience..."></textarea>
+        <div class="comment-input-footer"><button class="btn btn-primary btn-sm">Post</button></div>
+      </div>
+    </div>
+    <div class="comment">
+      <div class="comment-avatar" style="background:linear-gradient(135deg,var(--accent),var(--periwinkle))">MK</div>
+      <div class="comment-body">
+        <div class="comment-header"><span class="comment-author">@marcus_k</span><span class="badge badge-muted" style="font-size:0.58rem">✓ Been there</span><span class="comment-time">2 days ago</span></div>
+        <div class="comment-text">Da Adolfo is everything. One thing to add — if the sea is rough they cancel the boat, so have a backup lunch plan. Happened to us and we ended up somewhere random that was also incredible.</div>
+        <div class="comment-actions"><button class="comment-action">👍 14</button><button class="comment-action">Reply</button></div>
+      </div>
+    </div>
+    <div class="comment">
+      <div class="comment-avatar" style="background:linear-gradient(135deg,var(--secondary),var(--primary))">PL</div>
+      <div class="comment-body">
+        <div class="comment-header"><span class="comment-author">@priya_l</span><span class="comment-time">5 days ago</span></div>
+        <div class="comment-text">Is the Path of the Gods doable with a bad knee? Asking for someone who refuses to admit they have a bad knee 😅</div>
+        <div class="comment-actions"><button class="comment-action">👍 6</button><button class="comment-action">Reply</button></div>
+      </div>
+    </div>
+    <div class="forum-cta">
+      <div class="forum-cta-icon">💬</div>
+      <div>
+        <div class="forum-cta-title">More questions about the Amalfi Coast?</div>
+        <div class="forum-cta-sub">340 travellers sharing tips in the destination forum.</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto;flex-shrink:0">Join →</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- SIDEBAR -->
+<div class="guide-sidebar">
+
+  <div class="sidebar-box">
+    <div class="sidebar-map">
+      <div style="font-size:2rem;position:relative;z-index:1">🗺</div>
+      <div class="sidebar-map-label">19 places on map</div>
+    </div>
+    <div class="sidebar-box-body">
+      <button class="btn btn-ghost btn-sm" style="width:100%">View full map →</button>
+    </div>
+  </div>
+
+  <div class="sidebar-box">
+    <div class="sidebar-box-header">Day colour key</div>
+    <div class="sidebar-box-body">
+      <div class="day-legend">
+        <div class="day-legend-item"><div class="day-legend-dot" style="background:var(--day1)"></div><span class="day-legend-name">Day 1 · Sep 5</span><span class="day-legend-loc">Arrive · Amalfi</span></div>
+        <div class="day-legend-item"><div class="day-legend-dot" style="background:var(--day2)"></div><span class="day-legend-name">Day 2 · Sep 6</span><span class="day-legend-loc">Positano</span></div>
+        <div class="day-legend-item"><div class="day-legend-dot" style="background:var(--day3)"></div><span class="day-legend-name">Day 3 · Sep 7</span><span class="day-legend-loc">Ravello</span></div>
+        <div class="day-legend-item"><div class="day-legend-dot" style="background:var(--day4)"></div><span class="day-legend-name">Days 4–7</span><span class="day-legend-loc">Amalfi · Capri</span></div>
+        <div class="day-legend-item"><div class="day-legend-dot" style="background:var(--day5)"></div><span class="day-legend-name">Days 8–10</span><span class="day-legend-loc">Sorrento · Depart</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-box">
+    <div class="sidebar-box-header">About the author</div>
+    <div class="sidebar-box-body">
+      <div class="author-card">
+        <div class="author-card-avatar">CF</div>
+        <div><div class="author-card-name">Caitie F.</div><div class="author-card-meta">@caitiefitz · 12 trips · 4 guides</div></div>
+      </div>
+      <div class="author-card-bio">Collector of passport stamps and good meals. Miami-based. Partial to Michelin pasta and hikes with views.</div>
+      <button class="btn btn-ghost btn-sm" style="width:100%">Follow</button>
+    </div>
+  </div>
+
+  <div class="sidebar-box">
+    <div class="sidebar-box-header">Tags</div>
+    <div class="sidebar-box-body">
+      <div class="guide-tags">
+        <span class="guide-tag">Italy</span><span class="guide-tag">Amalfi Coast</span><span class="guide-tag">Group trip</span><span class="guide-tag">Luxury</span><span class="guide-tag">Food-focused</span><span class="guide-tag">Michelin</span><span class="guide-tag">Hiking</span><span class="guide-tag">September</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+  window.addEventListener('scroll', () => {
+    const doc = document.documentElement;
+    const pct = (doc.scrollTop / (doc.scrollHeight - doc.clientHeight)) * 100;
+    document.getElementById('progressFill').style.width = pct + '%';
+  });
+
+  function filterDay(btn, section) {
+    const day = btn.dataset.day;
+    document.querySelectorAll(`.day-pill[data-section="${section}"]`).forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll(`#${section}-list .place-card`).forEach(card => {
+      card.classList.toggle('hidden', day !== 'all' && card.dataset.day !== day);
+    });
+  }
+</script>
+</body>
+</html>
