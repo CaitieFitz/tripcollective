@@ -652,19 +652,17 @@
     <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:24px;line-height:1.6">
       Welcome to TripCollective. Let's start planning something amazing.
     </p>
-    <button class="btn btn-primary btn-lg" onclick="window.location='index.html'">
+    <button class="btn btn-primary btn-lg" onclick="window.location='dashboard.html'">
       Go to dashboard →
     </button>
   </div>
 
 </div>
 
-
-  // loaded as module — see script tag below
+<script type="module">
+  import { supabase } from './supabase.js';
 
   // ── CHECK IF ALREADY LOGGED IN ──
-  // If user visits login page while already 
-  // logged in, redirect to dashboard
   supabase.auth.getSession().then(({ data: { session } }) => {
     if (session) window.location = 'dashboard.html';
   });
