@@ -325,6 +325,18 @@
     document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 </script>
+<script type="module">
+  import { supabase } from './supabase.js';
 
+  // Redirect to login if not authenticated
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (!session) window.location = 'login.html';
+  });
+
+  // Listen for auth changes (e.g. logout)
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (!session) window.location = 'login.html';
+  });
+</script>
 </body>
 </html>
