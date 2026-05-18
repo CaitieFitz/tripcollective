@@ -659,46 +659,167 @@
 
 </div>
 
-<script>
+
+  // loaded as module — see script tag below
+
+  // ── CHECK IF ALREADY LOGGED IN ──
+  // If user visits login page while already 
+  // logged in, redirect to dashboard
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session) window.location = 'dashboard.html';
+  });
+
+  // ── TAB SWITCHING ──
   function switchTab(tab) {
     document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
     document.getElementById('tab-' + tab).classList.add('active');
     document.getElementById('panel-' + tab).classList.add('active');
     document.getElementById('auth-success').classList.remove('visible');
+    clearError();
   }
 
+  // ── SOCIAL LOGIN (placeholder for now) ──
   function handleSocial(provider) {
-    // Placeholder — will connect to Supabase auth
-    alert(`${provider} login will be connected when we set up Supabase! For now, try the email form.`);
+    alert(`${provider} login coming soon! Please use email for now.`);
   }
 
-  function handleLogin() {
-    const email = document.getElementById('login-email').value;
+  // ── LOGIN ──
+  async function handleLogin() {
+    const email    = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
+
     if (!email || !password) {
       shake(document.querySelector('#panel-login .btn-primary'));
+      showError('Please enter your email and password.');
       return;
     }
-    // Placeholder — will connect to Supabase
-    showSuccess();
+
+    setLoading(true, 'login');
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    setLoading(false, 'login');
+
+    if (error) {
+      showError(error.message);
+      shake(document.querySelector('#panel-login .btn-primary'));
+    } else {
+      showSuccess();
+    }
   }
 
-  function handleSignup() {
-    const first = document.getElementById('signup-first').value;
-    const email = document.getElementById('signup-email').value;
+  // ── SIGN UP ──
+  async function handleSignup() {
+    const first    = document.getElementById('signup-first').value.trim();
+    const last     = document.getElementById('signup-last').value.trim();
+    const email    = document.getElementById('signup-email').value.trim();
     const password = document.getElementById('signup-password').value;
+
     if (!first || !email || !password) {
+      shake(document.querySelector('#panel-signup .btn-primary'));
+      showError('Please fill in all required fields.');
+      return;
+    }
+
+    if (password.length < 8) {
+      showError('Password must be at least 8 characters.');
       shake(document.querySelector('#panel-signup .btn-primary'));
       return;
     }
-    // Placeholder — will connect to Supabase
-    showSuccess();
+
+    setLoading(true, 'signup');
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: `${first} ${last}`.trim(),
+          first_name: first,
+        }
+      }
+    });
+
+    setLoading(false, 'signup');
+
+    if (error) {
+      showError(error.message);
+      shake(document.querySelector('#panel-signup .btn-primary'));
+    } else if (data.user && !data.session) {
+      // Email confirmation required
+      showConfirmEmail(email);
+    } else {
+      // Auto-confirmed (e.g. if email confirm is off)
+      showSuccess();
+    }
   }
 
+  // ── FORGOT PASSWORD ──
+  async function showForgot() {
+    const email = document.getElementById('login-email').value.trim();
+    if (!email) {
+      showError('Enter your email above first, then click Forgot Password.');
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://tripcollectivehq.com/login.html'
+    });
+    if (error) {
+      showError(error.message);
+    } else {
+      showError('✅ Reset link sent! Check your email.', 'success');
+    }
+  }
+
+  // ── UI HELPERS ──
   function showSuccess() {
     document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
     document.getElementById('auth-success').classList.add('visible');
+  }
+
+  function showConfirmEmail(email) {
+    document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('auth-success').classList.add('visible');
+    document.querySelector('.auth-success h3').textContent = 'Check your email!';
+    document.querySelector('.auth-success p').textContent =
+      `We sent a confirmation link to ${email}. Click it to activate your account, then come back to log in.`;
+    document.querySelector('.auth-success button').textContent = 'Go to Log In';
+    document.querySelector('.auth-success button').onclick = () => switchTab('login');
+  }
+
+  function showError(msg, type = 'error') {
+    let el = document.getElementById('auth-error');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'auth-error';
+      el.style.cssText = `
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        margin-bottom: 12px;
+        line-height: 1.5;
+      `;
+      document.querySelector('.auth-tabs').insertAdjacentElement('beforebegin', el);
+    }
+    el.style.background = type === 'success'
+      ? 'rgba(43,161,118,0.1)' : 'rgba(221,56,44,0.1)';
+    el.style.color = type === 'success' ? '#1a7a58' : '#DD382C';
+    el.style.border = type === 'success'
+      ? '1px solid rgba(43,161,118,0.2)' : '1px solid rgba(221,56,44,0.2)';
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function clearError() {
+    const el = document.getElementById('auth-error');
+    if (el) el.style.display = 'none';
+  }
+
+  function setLoading(loading, panel) {
+    const btn = document.querySelector(`#panel-${panel} .btn-primary`);
+    btn.textContent = loading ? 'Please wait...' : (panel === 'login' ? 'Log in →' : 'Create account →');
+    btn.disabled = loading;
   }
 
   function togglePassword(id, btn) {
@@ -713,29 +834,26 @@
   }
 
   function checkStrength(value) {
-    const bar = document.getElementById('strength-bar');
-    const fill = document.getElementById('strength-fill');
+    const bar   = document.getElementById('strength-bar');
+    const fill  = document.getElementById('strength-fill');
     const label = document.getElementById('strength-label');
     bar.classList.toggle('visible', value.length > 0);
-
     let score = 0;
     if (value.length >= 8) score++;
     if (/[A-Z]/.test(value)) score++;
     if (/[0-9]/.test(value)) score++;
     if (/[^A-Za-z0-9]/.test(value)) score++;
-
     const levels = [
-      { pct: '25%', color: '#DD382C', text: 'Too weak' },
-      { pct: '50%', color: '#F2B08A', text: 'Could be stronger' },
-      { pct: '75%', color: '#EEA62B', text: 'Getting there' },
+      { pct: '25%',  color: '#DD382C', text: 'Too weak' },
+      { pct: '50%',  color: '#F2B08A', text: 'Could be stronger' },
+      { pct: '75%',  color: '#EEA62B', text: 'Getting there' },
       { pct: '100%', color: '#2BA176', text: 'Strong password ✓' },
     ];
-
     const level = levels[Math.max(0, score - 1)];
-    fill.style.width = level.pct;
+    fill.style.width     = level.pct;
     fill.style.background = level.color;
-    label.textContent = level.text;
-    label.style.color = level.color;
+    label.textContent    = level.text;
+    label.style.color    = level.color;
   }
 
   function shake(el) {
@@ -743,10 +861,6 @@
     el.offsetHeight;
     el.style.animation = 'shake 0.4s ease';
     setTimeout(() => el.style.animation = '', 400);
-  }
-
-  function showForgot() {
-    alert('Password reset will be connected when we set up Supabase!');
   }
 
   // Add shake animation
@@ -761,6 +875,148 @@
     }
   `;
   document.head.appendChild(style);
+</script>
+
+<script type="module">
+  import { supabase } from './supabase.js';
+
+  // Expose functions to global scope so onclick handlers work
+  window.switchTab    = switchTab;
+  window.handleSocial = handleSocial;
+  window.handleLogin  = handleLogin;
+  window.handleSignup = handleSignup;
+  window.showForgot   = showForgot;
+  window.togglePassword = togglePassword;
+  window.checkStrength  = checkStrength;
+
+  // Check if already logged in
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session) window.location = 'dashboard.html';
+  });
+
+  async function handleLogin() {
+    const email    = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!email || !password) {
+      shake(document.querySelector('#panel-login .btn-primary'));
+      showError('Please enter your email and password.');
+      return;
+    }
+    setLoading(true, 'login');
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false, 'login');
+    if (error) { showError(error.message); shake(document.querySelector('#panel-login .btn-primary')); }
+    else { showSuccess(); setTimeout(() => window.location = 'dashboard.html', 1200); }
+  }
+
+  async function handleSignup() {
+    const first    = document.getElementById('signup-first').value.trim();
+    const last     = document.getElementById('signup-last').value.trim();
+    const email    = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+    if (!first || !email || !password) { shake(document.querySelector('#panel-signup .btn-primary')); showError('Please fill in all required fields.'); return; }
+    if (password.length < 8) { showError('Password must be at least 8 characters.'); shake(document.querySelector('#panel-signup .btn-primary')); return; }
+    setLoading(true, 'signup');
+    const { data, error } = await supabase.auth.signUp({
+      email, password,
+      options: { data: { full_name: `${first} ${last}`.trim() } }
+    });
+    setLoading(false, 'signup');
+    if (error) { showError(error.message); shake(document.querySelector('#panel-signup .btn-primary')); }
+    else if (data.user && !data.session) { showConfirmEmail(email); }
+    else { showSuccess(); setTimeout(() => window.location = 'dashboard.html', 1200); }
+  }
+
+  async function showForgot() {
+    const email = document.getElementById('login-email').value.trim();
+    if (!email) { showError('Enter your email above first, then click Forgot Password.'); return; }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: 'https://tripcollectivehq.com/login.html' });
+    if (error) showError(error.message);
+    else showError('✅ Reset link sent! Check your email.', 'success');
+  }
+
+  function handleSocial(provider) { alert(`${provider} login coming soon! Please use email for now.`); }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    document.getElementById('panel-' + tab).classList.add('active');
+    document.getElementById('auth-success').classList.remove('visible');
+    clearError();
+  }
+
+  function showSuccess() {
+    document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('auth-success').classList.add('visible');
+  }
+
+  function showConfirmEmail(email) {
+    showSuccess();
+    document.querySelector('.auth-success h3').textContent = 'Check your email!';
+    document.querySelector('.auth-success p').textContent = `We sent a confirmation link to ${email}. Click it to activate your account, then log in.`;
+    document.querySelector('.auth-success button').textContent = 'Go to Log In';
+    document.querySelector('.auth-success button').onclick = () => switchTab('login');
+  }
+
+  function showError(msg, type = 'error') {
+    let el = document.getElementById('auth-error');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'auth-error';
+      el.style.cssText = 'padding:10px 14px;border-radius:10px;font-size:0.8rem;margin-bottom:12px;line-height:1.5;';
+      document.querySelector('.auth-tabs').insertAdjacentElement('beforebegin', el);
+    }
+    el.style.background = type === 'success' ? 'rgba(43,161,118,0.1)' : 'rgba(221,56,44,0.1)';
+    el.style.color      = type === 'success' ? '#1a7a58' : '#DD382C';
+    el.style.border     = type === 'success' ? '1px solid rgba(43,161,118,0.2)' : '1px solid rgba(221,56,44,0.2)';
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function clearError() { const el = document.getElementById('auth-error'); if (el) el.style.display = 'none'; }
+
+  function setLoading(loading, panel) {
+    const btn = document.querySelector(`#panel-${panel} .btn-primary`);
+    btn.textContent = loading ? 'Please wait...' : (panel === 'login' ? 'Log in →' : 'Create account →');
+    btn.disabled = loading;
+  }
+
+  function togglePassword(id, btn) {
+    const input = document.getElementById(id);
+    input.type = input.type === 'password' ? 'text' : 'password';
+    btn.textContent = input.type === 'password' ? 'Show' : 'Hide';
+  }
+
+  function checkStrength(value) {
+    const bar = document.getElementById('strength-bar');
+    const fill = document.getElementById('strength-fill');
+    const label = document.getElementById('strength-label');
+    bar.classList.toggle('visible', value.length > 0);
+    let score = 0;
+    if (value.length >= 8) score++;
+    if (/[A-Z]/.test(value)) score++;
+    if (/[0-9]/.test(value)) score++;
+    if (/[^A-Za-z0-9]/.test(value)) score++;
+    const levels = [
+      { pct:'25%',  color:'#DD382C', text:'Too weak' },
+      { pct:'50%',  color:'#F2B08A', text:'Could be stronger' },
+      { pct:'75%',  color:'#EEA62B', text:'Getting there' },
+      { pct:'100%', color:'#2BA176', text:'Strong password ✓' },
+    ];
+    const level = levels[Math.max(0, score - 1)];
+    fill.style.width = level.pct;
+    fill.style.background = level.color;
+    label.textContent = level.text;
+    label.style.color = level.color;
+  }
+
+  function shake(el) {
+    el.style.animation = 'none';
+    el.offsetHeight;
+    el.style.animation = 'shake 0.4s ease';
+    setTimeout(() => el.style.animation = '', 400);
+  }
 </script>
 
 </body>
