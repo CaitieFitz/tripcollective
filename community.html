@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TripCollective — Community</title>
+  <link rel="stylesheet" href="styles/global.css">
+  <style>
+    .community-header {
+      background: linear-gradient(135deg, rgba(232,133,106,0.08), rgba(235,168,184,0.1), rgba(168,159,200,0.08));
+      border-bottom: 1px solid var(--border);
+      padding: 40px var(--page-padding) 32px;
+    }
+
+    .community-header h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    .community-header p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      max-width: 480px;
+      line-height: 1.6;
+    }
+
+    .community-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      padding: 0 var(--page-padding);
+      background: var(--surface);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .community-tabs::-webkit-scrollbar { display: none; }
+
+    .comm-tab {
+      padding: 14px 20px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      background: none;
+      font-family: var(--font-body);
+      transition: all 0.2s;
+    }
+
+    .comm-tab:hover { color: var(--text); }
+    .comm-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 500; }
+
+    .community-body {
+      max-width: var(--page-max-width);
+      margin: 0 auto;
+      padding: 32px var(--page-padding) 80px;
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 32px;
+    }
+
+    /* Guide cards */
+    .guides-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+    }
+
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+
+    .guide-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .guide-card-img {
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+    }
+
+    .guide-card-body { padding: 16px; }
+
+    .guide-card-author {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .guide-card-avatar {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.58rem;
+      font-weight: 600;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .guide-card-author-name { font-size: 0.72rem; color: var(--text-muted); }
+
+    .guide-card-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 5px;
+      line-height: 1.2;
+    }
+
+    .guide-card-meta {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .guide-card-stats {
+      display: flex;
+      gap: 12px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .guide-card-tags {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .guide-tag {
+      font-size: 0.62rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: var(--muted);
+      color: var(--text-muted);
+    }
+
+    /* Sidebar */
+    .community-sidebar { display: flex; flex-direction: column; gap: 20px; }
+
+    .sidebar-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+    }
+
+    .sidebar-title {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+
+    .trending-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+
+    .trending-item:last-child { border-bottom: none; }
+
+    .trending-num {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 300;
+      color: var(--text-muted);
+      width: 20px;
+      flex-shrink: 0;
+    }
+
+    .trending-info { flex: 1; }
+    .trending-name { font-size: 0.8rem; font-weight: 500; }
+    .trending-meta { font-size: 0.7rem; color: var(--text-muted); }
+
+    .community-member {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+    }
+
+    .community-member-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: white;
+    }
+
+    .community-member-info { flex: 1; }
+    .community-member-name { font-size: 0.8rem; font-weight: 500; }
+    .community-member-meta { font-size: 0.7rem; color: var(--text-muted); }
+
+    .community-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .search-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      padding: 8px 16px;
+      flex: 1;
+      max-width: 360px;
+    }
+
+    .search-bar input {
+      border: none;
+      outline: none;
+      font-family: var(--font-body);
+      font-size: 0.82rem;
+      flex: 1;
+      background: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-ambience"></div>
+
+<nav class="nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-icon">🧭</div>
+    <span class="nav-logo-text">TripCollective</span>
+  </a>
+  <div class="nav-links">
+    <a href="dashboard.html"    class="nav-link">Dashboard</a>
+    <a href="trip-planner.html" class="nav-link">Trip Planner</a>
+    <a href="explore-map.html"  class="nav-link">Explore Map</a>
+    <a href="community.html"    class="nav-link active">Community</a>
+    <a href="saved-guides.html" class="nav-link">Saved Guides</a>
+  </div>
+  <div class="nav-avatar">SC</div>
+</nav>
+
+<div class="community-header">
+  <h1>Community Guides</h1>
+  <p>Real trips from real travellers. Verified recommendations from people who've actually been there.</p>
+  <div class="community-header-actions">
+    <div class="search-bar">
+      <span>🔍</span>
+      <input type="text" placeholder="Search destinations, guides, travellers...">
+    </div>
+    <button class="btn btn-primary btn-sm">+ Share your trip</button>
+  </div>
+</div>
+
+<div style="background:var(--surface);border-bottom:1px solid var(--border)">
+  <div class="community-tabs">
+    <button class="comm-tab active">✦ Featured</button>
+    <button class="comm-tab">🔥 Trending</button>
+    <button class="comm-tab">🌍 Europe</button>
+    <button class="comm-tab">🌏 Asia</button>
+    <button class="comm-tab">🌎 Americas</button>
+    <button class="comm-tab">🏝 Islands</button>
+    <button class="comm-tab">👥 Friends</button>
+    <button class="comm-tab">📌 Saved</button>
+  </div>
+</div>
+
+<div class="community-body">
+
+  <div>
+    <div class="guides-grid">
+
+      <div class="guide-card">
+        <div class="guide-card-img" style="background:linear-gradient(135deg,#f0e0d0,#e8c8b0)">🏛</div>
+        <div class="guide-card-body">
+          <div class="guide-card-author">
+            <div class="guide-card-avatar" style="background:var(--primary)">JM</div>
+            <span class="guide-card-author-name">@jessica_m</span>
+            <span class="badge badge-muted" style="margin-left:auto;font-size:0.6rem">✓ Verified</span>
+          </div>
+          <div class="guide-card-title">10 Days in Rome — The Real Itinerary</div>
+          <div class="guide-card-meta">Rome, Italy · Sep 2025 · 10 days</div>
+          <div class="guide-card-stats">
+            <span>❤️ 847 saves</span>
+            <span>💬 43 comments</span>
+            <span>📍 28 places</span>
+          </div>
+          <div class="guide-card-tags">
+            <span class="guide-tag">Michelin picks</span>
+            <span class="guide-tag">Culture</span>
+            <span class="guide-tag">Solo-friendly</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="guide-card">
+        <div class="guide-card-img" style="background:linear-gradient(135deg,#c8d8f0,#a8c8e8)">⛩</div>
+        <div class="guide-card-body">
+          <div class="guide-card-author">
+            <div class="guide-card-avatar" style="background:var(--accent)">MK</div>
+            <span class="guide-card-author-name">@marcus_k</span>
+          </div>
+          <div class="guide-card-title">Tokyo on $100/Day — Actually Possible</div>
+          <div class="guide-card-meta">Tokyo, Japan · Jan 2026 · 8 days</div>
+          <div class="guide-card-stats">
+            <span>❤️ 1.2k saves</span>
+            <span>💬 89 comments</span>
+            <span>📍 34 places</span>
+          </div>
+          <div class="guide-card-tags">
+            <span class="guide-tag">Budget</span>
+            <span class="guide-tag">Food-focused</span>
+            <span class="guide-tag">Eater picks</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="guide-card">
+        <div class="guide-card-img" style="background:linear-gradient(135deg,#d0e8d0,#b0d0b8)">🌿</div>
+        <div class="guide-card-body">
+          <div class="guide-card-author">
+            <div class="guide-card-avatar" style="background:var(--secondary)">PL</div>
+            <span class="guide-card-author-name">@priya_l</span>
+            <span class="badge badge-muted" style="margin-left:auto;font-size:0.6rem">✓ Verified</span>
+          </div>
+          <div class="guide-card-title">Bali Hidden Gems — Beyond the Tourists</div>
+          <div class="guide-card-meta">Bali, Indonesia · Mar 2026 · 12 days</div>
+          <div class="guide-card-stats">
+            <span>❤️ 623 saves</span>
+            <span>💬 31 comments</span>
+            <span>📍 22 places</span>
+          </div>
+          <div class="guide-card-tags">
+            <span class="guide-tag">Off the beaten path</span>
+            <span class="guide-tag">Spiritual</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="guide-card">
+        <div class="guide-card-img" style="background:linear-gradient(135deg,#f0d8c8,#e8c0a0)">🌅</div>
+        <div class="guide-card-body">
+          <div class="guide-card-author">
+            <div class="guide-card-avatar" style="background:var(--periwinkle)">AL</div>
+            <span class="guide-card-author-name">@alex_l</span>
+          </div>
+          <div class="guide-card-title">Amalfi Coast — A Group Trip Guide</div>
+          <div class="guide-card-meta">Amalfi, Italy · Jun 2025 · 10 days</div>
+          <div class="guide-card-stats">
+            <span>❤️ 412 saves</span>
+            <span>💬 28 comments</span>
+            <span>📍 19 places</span>
+          </div>
+          <div class="guide-card-tags">
+            <span class="guide-tag">Group trip</span>
+            <span class="guide-tag">Luxury</span>
+            <span class="guide-tag">CNT picks</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="community-sidebar">
+
+    <div class="sidebar-card">
+      <div class="sidebar-title">🔥 Trending Destinations</div>
+      <div class="trending-item">
+        <div class="trending-num">1</div>
+        <div class="trending-info">
+          <div class="trending-name">Amalfi Coast, Italy</div>
+          <div class="trending-meta">↑ 240% this month</div>
+        </div>
+      </div>
+      <div class="trending-item">
+        <div class="trending-num">2</div>
+        <div class="trending-info">
+          <div class="trending-name">Kyoto, Japan</div>
+          <div class="trending-meta">↑ 180% this month</div>
+        </div>
+      </div>
+      <div class="trending-item">
+        <div class="trending-num">3</div>
+        <div class="trending-info">
+          <div class="trending-name">Lisbon, Portugal</div>
+          <div class="trending-meta">↑ 156% this month</div>
+        </div>
+      </div>
+      <div class="trending-item">
+        <div class="trending-num">4</div>
+        <div class="trending-info">
+          <div class="trending-name">Oaxaca, Mexico</div>
+          <div class="trending-meta">↑ 134% this month</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="sidebar-title">👥 People to Follow</div>
+      <div class="community-member">
+        <div class="community-member-avatar" style="background:var(--primary)">JM</div>
+        <div class="community-member-info">
+          <div class="community-member-name">@jessica_m</div>
+          <div class="community-member-meta">847 saves · 12 guides</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="font-size:0.7rem;padding:4px 10px">Follow</button>
+      </div>
+      <div class="community-member">
+        <div class="community-member-avatar" style="background:var(--accent)">MK</div>
+        <div class="community-member-info">
+          <div class="community-member-name">@marcus_k</div>
+          <div class="community-member-meta">1.2k saves · 8 guides</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="font-size:0.7rem;padding:4px 10px">Follow</button>
+      </div>
+      <div class="community-member">
+        <div class="community-member-avatar" style="background:var(--secondary)">PL</div>
+        <div class="community-member-info">
+          <div class="community-member-name">@priya_l</div>
+          <div class="community-member-meta">623 saves · 6 guides</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="font-size:0.7rem;padding:4px 10px">Follow</button>
+      </div>
+    </div>
+
+    <div class="sidebar-card" style="background:linear-gradient(135deg,rgba(232,133,106,0.08),rgba(235,168,184,0.1));border-color:rgba(232,133,106,0.2)">
+      <div class="sidebar-title">✦ Share your trip</div>
+      <p style="font-size:0.78rem;color:var(--text-muted);line-height:1.6;margin-bottom:14px">
+        Completed a trip? Turn it into a guide and help other travellers discover the best places.
+      </p>
+      <button class="btn btn-primary btn-sm" style="width:100%">Publish a guide</button>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>

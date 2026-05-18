@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TripCollective — Saved Guides</title>
+  <link rel="stylesheet" href="styles/global.css">
+  <style>
+    .saved-header {
+      padding: 36px var(--page-padding) 28px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .saved-header h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .saved-header p { font-size:0.85rem; color:var(--text-muted); }
+
+    .saved-body {
+      max-width: var(--page-max-width);
+      margin: 0 auto;
+      padding: 28px var(--page-padding) 80px;
+    }
+
+    /* Collections */
+    .collections-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 40px;
+    }
+
+    .collection-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .collection-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .collection-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+
+    .collection-card:nth-child(1)::before { background: var(--primary); }
+    .collection-card:nth-child(2)::before { background: var(--secondary); }
+    .collection-card:nth-child(3)::before { background: var(--accent); }
+    .collection-card:nth-child(4)::before { background: var(--success); }
+
+    .collection-icon { font-size: 1.6rem; margin-bottom: 10px; }
+
+    .collection-name {
+      font-weight: 500;
+      font-size: 0.88rem;
+      margin-bottom: 3px;
+    }
+
+    .collection-count { font-size: 0.72rem; color: var(--text-muted); }
+
+    .collection-add {
+      border-style: dashed;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--text-muted);
+      min-height: 100px;
+    }
+
+    .collection-add::before { display: none; }
+    .collection-add:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* Saved items grid */
+    .saved-section-title {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .saved-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .saved-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+
+    .saved-item:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .saved-item-img {
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      position: relative;
+    }
+
+    .saved-item-type {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      border-radius: var(--radius-full);
+      padding: 3px 10px;
+      font-size: 0.62rem;
+      font-weight: 500;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .saved-item-unsave {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 28px; height: 28px;
+      background: white;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      box-shadow: var(--shadow-sm);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .saved-item:hover .saved-item-unsave { opacity: 1; }
+
+    .saved-item-body { padding: 14px; }
+
+    .saved-item-source {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .saved-item-name {
+      font-weight: 500;
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+
+    .saved-item-meta { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 10px; }
+
+    .saved-item-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    /* Empty state */
+    .empty-collection {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 48px;
+      color: var(--text-muted);
+      border: 1.5px dashed var(--border);
+      border-radius: var(--radius-lg);
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-ambience"></div>
+
+<nav class="nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-icon">🧭</div>
+    <span class="nav-logo-text">TripCollective</span>
+  </a>
+  <div class="nav-links">
+    <a href="dashboard.html"    class="nav-link">Dashboard</a>
+    <a href="trip-planner.html" class="nav-link">Trip Planner</a>
+    <a href="explore-map.html"  class="nav-link">Explore Map</a>
+    <a href="community.html"    class="nav-link">Community</a>
+    <a href="saved-guides.html" class="nav-link active">Saved Guides</a>
+  </div>
+  <div class="nav-avatar">SC</div>
+</nav>
+
+<div class="saved-header">
+  <div>
+    <h1>Saved Guides</h1>
+    <p>Your curated collection of places, guides and recommendations.</p>
+  </div>
+  <button class="btn btn-primary btn-sm">+ New Collection</button>
+</div>
+
+<div class="saved-body">
+
+  <!-- COLLECTIONS -->
+  <div style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+    <p class="saved-section-title">Your Collections</p>
+  </div>
+
+  <div class="collections-row">
+    <div class="collection-card">
+      <div class="collection-icon">🇮🇹</div>
+      <div class="collection-name">Italy Trip</div>
+      <div class="collection-count">14 saved places</div>
+    </div>
+    <div class="collection-card">
+      <div class="collection-icon">🍴</div>
+      <div class="collection-name">Restaurants to Try</div>
+      <div class="collection-count">28 saved places</div>
+    </div>
+    <div class="collection-card">
+      <div class="collection-icon">🏨</div>
+      <div class="collection-name">Dream Hotels</div>
+      <div class="collection-count">9 saved places</div>
+    </div>
+    <div class="collection-card collection-add">
+      <div style="font-size:1.4rem;margin-bottom:6px">+</div>
+      <div style="font-size:0.78rem">New Collection</div>
+    </div>
+  </div>
+
+  <!-- RECENTLY SAVED -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <p class="saved-section-title">Recently Saved</p>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-ghost btn-sm">Grid</button>
+      <button class="btn btn-ghost btn-sm">List</button>
+    </div>
+  </div>
+
+  <div class="saved-grid">
+
+    <div class="saved-item">
+      <div class="saved-item-img" style="background:linear-gradient(135deg,rgba(43,161,118,0.1),rgba(43,161,118,0.05))">
+        🍝
+        <span class="saved-item-type">🍴 Restaurant</span>
+        <button class="saved-item-unsave">🗑</button>
+      </div>
+      <div class="saved-item-body">
+        <div class="saved-item-source">Michelin ★ · Eater</div>
+        <div class="saved-item-name">Ristorante Da Gemma</div>
+        <div class="saved-item-meta">Amalfi, Italy · $$$$</div>
+        <div class="saved-item-actions">
+          <button class="btn btn-primary btn-sm" style="font-size:0.7rem;padding:5px 10px">Add to trip</button>
+          <button class="btn btn-ghost btn-sm" style="font-size:0.7rem;padding:5px 10px">View</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="saved-item">
+      <div class="saved-item-img" style="background:linear-gradient(135deg,rgba(232,133,106,0.1),rgba(232,133,106,0.05))">
+        🏨
+        <span class="saved-item-type">🏨 Hotel</span>
+        <button class="saved-item-unsave">🗑</button>
+      </div>
+      <div class="saved-item-body">
+        <div class="saved-item-source">CNT Top 100</div>
+        <div class="saved-item-name">Villa Cimbrone</div>
+        <div class="saved-item-meta">Ravello, Italy · $$$$$</div>
+        <div class="saved-item-actions">
+          <button class="btn btn-primary btn-sm" style="font-size:0.7rem;padding:5px 10px">Add to trip</button>
+          <button class="btn btn-ghost btn-sm" style="font-size:0.7rem;padding:5px 10px">View</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="saved-item">
+      <div class="saved-item-img" style="background:linear-gradient(135deg,rgba(168,159,200,0.1),rgba(168,159,200,0.05))">
+        🥾
+        <span class="saved-item-type">🥾 Activity</span>
+        <button class="saved-item-unsave">🗑</button>
+      </div>
+      <div class="saved-item-body">
+        <div class="saved-item-source">Lonely Planet · 3 friends</div>
+        <div class="saved-item-name">Path of the Gods Hike</div>
+        <div class="saved-item-meta">Agerola to Positano · Free</div>
+        <div class="saved-item-actions">
+          <button class="btn btn-primary btn-sm" style="font-size:0.7rem;padding:5px 10px">Add to trip</button>
+          <button class="btn btn-ghost btn-sm" style="font-size:0.7rem;padding:5px 10px">View</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="saved-item">
+      <div class="saved-item-img" style="background:linear-gradient(135deg,rgba(143,163,212,0.1),rgba(143,163,212,0.05))">
+        📖
+        <span class="saved-item-type">📖 Guide</span>
+        <button class="saved-item-unsave">🗑</button>
+      </div>
+      <div class="saved-item-body">
+        <div class="saved-item-source">@jessica_m · Community</div>
+        <div class="saved-item-name">10 Days in Rome</div>
+        <div class="saved-item-meta">Rome, Italy · 28 places</div>
+        <div class="saved-item-actions">
+          <button class="btn btn-primary btn-sm" style="font-size:0.7rem;padding:5px 10px">Use as template</button>
+          <button class="btn btn-ghost btn-sm" style="font-size:0.7rem;padding:5px 10px">View</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="saved-item">
+      <div class="saved-item-img" style="background:linear-gradient(135deg,rgba(43,161,118,0.1),rgba(43,161,118,0.05))">
+        🍋
+        <span class="saved-item-type">🍴 Experience</span>
+        <button class="saved-item-unsave">🗑</button>
+      </div>
+      <div class="saved-item-body">
+        <div class="saved-item-source">Eater</div>
+        <div class="saved-item-name">Limoncello Tasting — Antiche</div>
+        <div class="saved-item-meta">Ravello · $35pp</div>
+        <div class="saved-item-actions">
+          <button class="btn btn-primary btn-sm" style="font-size:0.7rem;padding:5px 10px">Add to trip</button>
+          <button class="btn btn-ghost btn-sm" style="font-size:0.7rem;padding:5px 10px">View</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="saved-item">
+      <div class="saved-item-img" style="background:linear-gradient(135deg,rgba(235,168,184,0.1),rgba(235,168,184,0.05))">
+        ⛵
+        <span class="saved-item-type">🎭 Activity</span>
+        <button class="saved-item-unsave">🗑</button>
+      </div>
+      <div class="saved-item-body">
+        <div class="saved-item-source">CNT · Sarah ★</div>
+        <div class="saved-item-name">Boat Tour to Li Galli Islands</div>
+        <div class="saved-item-meta">Positano · ~$120pp</div>
+        <div class="saved-item-actions">
+          <button class="btn btn-primary btn-sm" style="font-size:0.7rem;padding:5px 10px">Add to trip</button>
+          <button class="btn btn-ghost btn-sm" style="font-size:0.7rem;padding:5px 10px">View</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>

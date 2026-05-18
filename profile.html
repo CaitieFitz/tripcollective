@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TripCollective — Profile</title>
+  <link rel="stylesheet" href="styles/global.css">
+  <style>
+    .profile-hero {
+      background: linear-gradient(160deg, #2C2038 0%, #1a1228 100%);
+      padding: 48px var(--page-padding) 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .profile-hero::before {
+      content: '';
+      position: absolute;
+      width: 400px; height: 400px;
+      top: -100px; right: -60px;
+      background: radial-gradient(circle, rgba(232,133,106,0.2), transparent 65%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .profile-hero::after {
+      content: '';
+      position: absolute;
+      width: 300px; height: 300px;
+      bottom: -60px; left: 10%;
+      background: radial-gradient(circle, rgba(168,159,200,0.15), transparent 65%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .profile-hero-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: flex-end;
+      gap: 24px;
+    }
+
+    .profile-avatar-wrap { position: relative; }
+
+    .profile-avatar {
+      width: 96px; height: 96px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      font-weight: 300;
+      color: white;
+      border: 3px solid rgba(255,255,255,0.15);
+      flex-shrink: 0;
+    }
+
+    .profile-avatar-edit {
+      position: absolute;
+      bottom: 2px; right: 2px;
+      width: 26px; height: 26px;
+      background: white;
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .profile-info { flex: 1; padding-bottom: 20px; }
+
+    .profile-name {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 300;
+      color: white;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .profile-handle {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 10px;
+    }
+
+    .profile-bio {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.7);
+      line-height: 1.6;
+      max-width: 400px;
+    }
+
+    .profile-stats-row {
+      display: flex;
+      gap: 28px;
+      padding-bottom: 20px;
+    }
+
+    .profile-stat {
+      text-align: center;
+    }
+
+    .profile-stat-num {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 300;
+      color: white;
+      line-height: 1;
+      margin-bottom: 3px;
+    }
+
+    .profile-stat-label {
+      font-size: 0.65rem;
+      color: rgba(255,255,255,0.45);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .profile-actions {
+      padding-bottom: 20px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-white-outline {
+      background: rgba(255,255,255,0.1);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.25);
+    }
+
+    .btn-white-outline:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    /* Profile tabs */
+    .profile-tabs {
+      background: #1a1228;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 0 var(--page-padding);
+      display: flex;
+      position: relative;
+      z-index: 1;
+    }
+
+    .profile-tab {
+      padding: 14px 20px;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.4);
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      background: none;
+      font-family: var(--font-body);
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .profile-tab:hover { color: rgba(255,255,255,0.7); }
+    .profile-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    /* Profile body */
+    .profile-body {
+      max-width: var(--page-max-width);
+      margin: 0 auto;
+      padding: 32px var(--page-padding) 80px;
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 32px;
+    }
+
+    /* Travel stats */
+    .travel-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 32px;
+    }
+
+    .travel-stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      text-align: center;
+    }
+
+    .travel-stat-icon { font-size: 1.4rem; margin-bottom: 6px; }
+
+    .travel-stat-num {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      font-weight: 300;
+      margin-bottom: 3px;
+    }
+
+    .travel-stat-label { font-size: 0.72rem; color: var(--text-muted); }
+
+    /* Trip history */
+    .trip-history-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .trip-history-item:last-child { border-bottom: none; }
+
+    .trip-history-img {
+      width: 52px; height: 52px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+
+    .trip-history-info { flex: 1; }
+    .trip-history-name { font-weight: 500; font-size: 0.88rem; margin-bottom: 3px; }
+    .trip-history-meta { font-size: 0.72rem; color: var(--text-muted); }
+
+    /* Preferences sidebar */
+    .pref-section { margin-bottom: 24px; }
+
+    .pref-title {
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .pref-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .pref-tag {
+      padding: 5px 12px;
+      border-radius: var(--radius-full);
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1px solid var(--border);
+      background: none;
+      font-family: var(--font-body);
+      color: var(--text);
+    }
+
+    .pref-tag.selected {
+      background: var(--muted);
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    .pref-tag:hover { border-color: var(--accent); }
+
+    /* Countries visited map placeholder */
+    .countries-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .countries-map-placeholder {
+      height: 120px;
+      background: linear-gradient(135deg, #e8f0e8, #d8e8d8);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      color: #666;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-ambience"></div>
+
+<nav class="nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-icon">🧭</div>
+    <span class="nav-logo-text">TripCollective</span>
+  </a>
+  <div class="nav-links">
+    <a href="dashboard.html"    class="nav-link">Dashboard</a>
+    <a href="trip-planner.html" class="nav-link">Trip Planner</a>
+    <a href="explore-map.html"  class="nav-link">Explore Map</a>
+    <a href="community.html"    class="nav-link">Community</a>
+    <a href="saved-guides.html" class="nav-link">Saved Guides</a>
+  </div>
+  <div class="nav-avatar">SC</div>
+</nav>
+
+<div class="profile-hero">
+  <div class="profile-hero-content">
+    <div class="profile-avatar-wrap">
+      <div class="profile-avatar">C</div>
+      <button class="profile-avatar-edit">✏️</button>
+    </div>
+    <div class="profile-info">
+      <div class="profile-name">Caitie F.</div>
+      <div class="profile-handle">@caitiefitz · Miami, FL</div>
+      <div class="profile-bio">Collector of passport stamps and good meals. Always planning the next one. ✈️🍝</div>
+    </div>
+    <div class="profile-stats-row">
+      <div class="profile-stat">
+        <div class="profile-stat-num">12</div>
+        <div class="profile-stat-label">Trips</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-num">23</div>
+        <div class="profile-stat-label">Countries</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-num">4</div>
+        <div class="profile-stat-label">Guides</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-num">847</div>
+        <div class="profile-stat-label">Saves</div>
+      </div>
+    </div>
+    <div class="profile-actions">
+      <button class="btn btn-primary btn-sm">Edit Profile</button>
+      <button class="btn btn-white-outline btn-sm">Share Profile</button>
+    </div>
+  </div>
+
+  <div class="profile-tabs">
+    <button class="profile-tab active">Trips</button>
+    <button class="profile-tab">Guides</button>
+    <button class="profile-tab">Saved</button>
+    <button class="profile-tab">Following</button>
+    <button class="profile-tab">Settings</button>
+  </div>
+</div>
+
+<div class="profile-body">
+
+  <div>
+    <!-- Travel stats -->
+    <div class="travel-stats">
+      <div class="travel-stat-card">
+        <div class="travel-stat-icon">✈️</div>
+        <div class="travel-stat-num" style="color:var(--primary)">12</div>
+        <div class="travel-stat-label">Trips taken</div>
+      </div>
+      <div class="travel-stat-card">
+        <div class="travel-stat-icon">🌍</div>
+        <div class="travel-stat-num" style="color:var(--accent)">23</div>
+        <div class="travel-stat-label">Countries visited</div>
+      </div>
+      <div class="travel-stat-card">
+        <div class="travel-stat-icon">🍴</div>
+        <div class="travel-stat-num" style="color:var(--success)">184</div>
+        <div class="travel-stat-label">Places visited</div>
+      </div>
+    </div>
+
+    <!-- Trip history -->
+    <div style="font-family:var(--font-display);font-size:1.2rem;font-weight:600;margin-bottom:16px">
+      Trip History
+    </div>
+
+    <div class="trip-history-item">
+      <div class="trip-history-img" style="background:rgba(43,161,118,0.1)">🏝</div>
+      <div class="trip-history-info">
+        <div class="trip-history-name">Maldives</div>
+        <div class="trip-history-meta">Dec 2025 · 7 days · 2 travellers · $8,000</div>
+      </div>
+      <span class="badge badge-completed"><span class="badge-dot"></span>Completed</span>
+    </div>
+
+    <div class="trip-history-item">
+      <div class="trip-history-img" style="background:rgba(168,159,200,0.1)">🦘</div>
+      <div class="trip-history-info">
+        <div class="trip-history-name">Australia — Sydney & Melbourne</div>
+        <div class="trip-history-meta">Dec 2025 · 10 days · 3 travellers · $6,500</div>
+      </div>
+      <span class="badge badge-completed"><span class="badge-dot"></span>Completed</span>
+    </div>
+
+    <div class="trip-history-item">
+      <div class="trip-history-img" style="background:rgba(232,133,106,0.1)">🏛</div>
+      <div class="trip-history-info">
+        <div class="trip-history-name">Rome & Amalfi Coast</div>
+        <div class="trip-history-meta">Sep 2025 · 12 days · 4 travellers</div>
+      </div>
+      <span class="badge badge-planning"><span class="badge-dot"></span>Planning</span>
+    </div>
+
+    <div class="trip-history-item">
+      <div class="trip-history-img" style="background:rgba(143,163,212,0.1)">⛩</div>
+      <div class="trip-history-info">
+        <div class="trip-history-name">Japan — Tokyo & Kyoto</div>
+        <div class="trip-history-meta">Mar 2024 · 14 days · Solo</div>
+      </div>
+      <span class="badge badge-completed"><span class="badge-dot"></span>Completed</span>
+    </div>
+
+  </div>
+
+  <!-- SIDEBAR -->
+  <div>
+
+    <div class="countries-card">
+      <div style="font-family:var(--font-display);font-size:1rem;font-weight:600;margin-bottom:4px">Countries Visited</div>
+      <div style="font-size:0.72rem;color:var(--text-muted)">23 countries · 6 continents</div>
+      <div class="countries-map-placeholder">🗺 World map coming with Supabase</div>
+    </div>
+
+    <div class="pref-section" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px">
+      <div style="font-family:var(--font-display);font-size:1rem;font-weight:600;margin-bottom:16px">Travel Preferences</div>
+
+      <div class="pref-section">
+        <div class="pref-title">Travel Style</div>
+        <div class="pref-tags">
+          <button class="pref-tag selected">Luxury</button>
+          <button class="pref-tag selected">Food-focused</button>
+          <button class="pref-tag">Adventure</button>
+          <button class="pref-tag selected">Culture</button>
+          <button class="pref-tag">Budget</button>
+          <button class="pref-tag">Backpacking</button>
+        </div>
+      </div>
+
+      <div class="pref-section">
+        <div class="pref-title">Favourite Sources</div>
+        <div class="pref-tags">
+          <button class="pref-tag selected">NYT Travel</button>
+          <button class="pref-tag selected">Michelin</button>
+          <button class="pref-tag selected">Eater</button>
+          <button class="pref-tag">Lonely Planet</button>
+          <button class="pref-tag selected">CNT</button>
+        </div>
+      </div>
+
+      <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px">Save Preferences</button>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>

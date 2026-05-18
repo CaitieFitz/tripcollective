@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TripCollective — Explore Map</title>
+  <link rel="stylesheet" href="styles/global.css">
+  <style>
+    body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+
+    .explore-shell {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── LEFT SIDEBAR ── */
+    .explore-sidebar {
+      width: 340px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .explore-search {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .search-input-wrap {
+      position: relative;
+    }
+
+    .search-input-wrap input {
+      width: 100%;
+      padding: 10px 14px 10px 36px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border);
+      background: var(--muted);
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      color: var(--text);
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .search-input-wrap input:focus {
+      border-color: var(--ring);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(143,163,212,0.15);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.85rem;
+      pointer-events: none;
+    }
+
+    .explore-filters {
+      display: flex;
+      gap: 6px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .explore-filters::-webkit-scrollbar { display: none; }
+
+    .filter-pill {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 12px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border);
+      background: none;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-family: var(--font-body);
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+
+    .filter-pill:hover { border-color: var(--accent); color: var(--text); }
+    .filter-pill.active { background: var(--muted); border-color: var(--accent); color: var(--text); font-weight: 500; }
+
+    .explore-source-tabs {
+      display: flex;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border);
+      gap: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .source-tab {
+      padding: 10px 14px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      border: none;
+      background: none;
+      font-family: var(--font-body);
+      transition: all 0.2s;
+    }
+
+    .source-tab:hover { color: var(--text); }
+    .source-tab.active { color: var(--primary); border-bottom: 2px solid var(--primary); font-weight: 500; }
+
+    .explore-results {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    .result-card {
+      display: flex;
+      gap: 12px;
+      padding: 12px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background 0.15s;
+      border: 1px solid transparent;
+    }
+
+    .result-card:hover {
+      background: var(--muted);
+      border-color: var(--border);
+    }
+
+    .result-img {
+      width: 64px;
+      height: 64px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .result-body { flex: 1; min-width: 0; }
+
+    .result-name {
+      font-weight: 500;
+      font-size: 0.85rem;
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .result-meta {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+    }
+
+    .result-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+
+    .result-badge {
+      font-size: 0.62rem;
+      padding: 2px 7px;
+      border-radius: 10px;
+      background: var(--muted);
+      color: var(--text-muted);
+    }
+
+    .result-badge.verified { background: rgba(43,161,118,0.12); color: var(--success); }
+
+    .result-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: flex-end;
+      flex-shrink: 0;
+    }
+
+    /* ── MAP AREA ── */
+    .explore-map {
+      flex: 1;
+      position: relative;
+      background: linear-gradient(135deg, #e8f0e8, #d0e0d0);
+      overflow: hidden;
+    }
+
+    .explore-map::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(160,192,160,0.25) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(160,192,160,0.25) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    .map-coming-soon {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .map-coming-soon-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px 32px;
+      text-align: center;
+      box-shadow: var(--shadow-md);
+    }
+
+    .map-coming-soon-icon { font-size: 2.5rem; margin-bottom: 10px; }
+
+    .map-coming-soon-title {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 400;
+      margin-bottom: 6px;
+    }
+
+    .map-coming-soon-sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      max-width: 260px;
+    }
+
+    /* Fake pins */
+    .explore-pin {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      transition: transform 0.2s;
+      z-index: 2;
+    }
+
+    .explore-pin:hover { transform: scale(1.15); }
+
+    .explore-pin-bubble {
+      background: white;
+      border: 2px solid var(--primary);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text);
+      box-shadow: var(--shadow-md);
+      white-space: nowrap;
+    }
+
+    .explore-pin-tail {
+      width: 2px;
+      height: 8px;
+      background: var(--primary);
+    }
+
+    .explore-pin-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+
+    /* Map controls */
+    .map-controls {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 3;
+    }
+
+    .map-control-btn {
+      width: 36px; height: 36px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.9rem;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.15s;
+    }
+
+    .map-control-btn:hover { background: var(--muted); }
+
+    /* Destination badge top of map */
+    .map-destination-badge {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      padding: 8px 18px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 3;
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-ambience"></div>
+
+<nav class="nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-icon">🧭</div>
+    <span class="nav-logo-text">TripCollective</span>
+  </a>
+  <div class="nav-links">
+    <a href="dashboard.html"    class="nav-link">Dashboard</a>
+    <a href="trip-planner.html" class="nav-link">Trip Planner</a>
+    <a href="explore-map.html"  class="nav-link active">Explore Map</a>
+    <a href="community.html"    class="nav-link">Community</a>
+    <a href="saved-guides.html" class="nav-link">Saved Guides</a>
+  </div>
+  <div class="nav-avatar">SC</div>
+</nav>
+
+<div class="explore-shell">
+
+  <!-- SIDEBAR -->
+  <div class="explore-sidebar">
+
+    <div class="explore-search">
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Search restaurants, hotels, activities...">
+      </div>
+    </div>
+
+    <div class="explore-filters">
+      <button class="filter-pill active">All</button>
+      <button class="filter-pill">🍴 Food</button>
+      <button class="filter-pill">🏨 Hotels</button>
+      <button class="filter-pill">🎭 Activities</button>
+      <button class="filter-pill">🥾 Outdoors</button>
+      <button class="filter-pill">🌙 Nightlife</button>
+    </div>
+
+    <div class="explore-source-tabs">
+      <button class="source-tab active">All Sources</button>
+      <button class="source-tab">NYT</button>
+      <button class="source-tab">Michelin</button>
+      <button class="source-tab">Eater</button>
+      <button class="source-tab">CNT</button>
+      <button class="source-tab">Friends</button>
+    </div>
+
+    <div class="explore-results">
+
+      <div style="font-size:0.68rem;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;padding:8px 4px 10px;font-weight:500">
+        Trending in Amalfi Coast
+      </div>
+
+      <div class="result-card">
+        <div class="result-img" style="background:rgba(43,161,118,0.1)">🍝</div>
+        <div class="result-body">
+          <div class="result-name">Ristorante Da Gemma</div>
+          <div class="result-meta">Restaurant · Amalfi · $$$$</div>
+          <div class="result-badges">
+            <span class="result-badge verified">✓ Michelin ★</span>
+            <span class="result-badge">NYT Pick</span>
+          </div>
+        </div>
+        <div class="result-actions">
+          <button class="btn btn-primary btn-sm" style="font-size:0.68rem;padding:5px 10px">+ Save</button>
+        </div>
+      </div>
+
+      <div class="result-card">
+        <div class="result-img" style="background:rgba(232,133,106,0.1)">🏨</div>
+        <div class="result-body">
+          <div class="result-name">Villa Cimbrone Hotel</div>
+          <div class="result-meta">Hotel · Ravello · $$$$$</div>
+          <div class="result-badges">
+            <span class="result-badge verified">✓ CNT Top 100</span>
+          </div>
+        </div>
+        <div class="result-actions">
+          <button class="btn btn-primary btn-sm" style="font-size:0.68rem;padding:5px 10px">+ Save</button>
+        </div>
+      </div>
+
+      <div class="result-card">
+        <div class="result-img" style="background:rgba(168,159,200,0.1)">🥾</div>
+        <div class="result-body">
+          <div class="result-name">Path of the Gods</div>
+          <div class="result-meta">Hike · Agerola to Positano</div>
+          <div class="result-badges">
+            <span class="result-badge verified">✓ Lonely Planet</span>
+            <span class="result-badge">3 friends been</span>
+          </div>
+        </div>
+        <div class="result-actions">
+          <button class="btn btn-primary btn-sm" style="font-size:0.68rem;padding:5px 10px">+ Save</button>
+        </div>
+      </div>
+
+      <div class="result-card">
+        <div class="result-img" style="background:rgba(143,163,212,0.1)">⛵</div>
+        <div class="result-body">
+          <div class="result-name">Boat Tour to Li Galli</div>
+          <div class="result-meta">Activity · Full day · ~$120pp</div>
+          <div class="result-badges">
+            <span class="result-badge verified">✓ CNT</span>
+            <span class="result-badge">Eater</span>
+          </div>
+        </div>
+        <div class="result-actions">
+          <button class="btn btn-primary btn-sm" style="font-size:0.68rem;padding:5px 10px">+ Save</button>
+        </div>
+      </div>
+
+      <div class="result-card">
+        <div class="result-img" style="background:rgba(43,161,118,0.1)">🍋</div>
+        <div class="result-body">
+          <div class="result-name">Limoncello Tasting — Antiche</div>
+          <div class="result-meta">Experience · Ravello · $35pp</div>
+          <div class="result-badges">
+            <span class="result-badge verified">✓ Eater</span>
+          </div>
+        </div>
+        <div class="result-actions">
+          <button class="btn btn-primary btn-sm" style="font-size:0.68rem;padding:5px 10px">+ Save</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div class="explore-map">
+
+    <div class="map-destination-badge">
+      📍 Amalfi Coast, Italy
+      <span style="color:var(--text-muted);font-weight:300">|</span>
+      <span style="color:var(--text-muted);font-size:0.72rem">24 saved places</span>
+    </div>
+
+    <!-- Fake pins -->
+    <div class="explore-pin" style="top:28%;left:38%">
+      <div class="explore-pin-bubble">🍝 Da Gemma</div>
+      <div class="explore-pin-tail"></div>
+      <div class="explore-pin-dot"></div>
+    </div>
+
+    <div class="explore-pin" style="top:42%;left:55%">
+      <div class="explore-pin-bubble" style="border-color:var(--secondary)">🏨 Villa Cimbrone</div>
+      <div class="explore-pin-tail" style="background:var(--secondary)"></div>
+      <div class="explore-pin-dot" style="background:var(--secondary)"></div>
+    </div>
+
+    <div class="explore-pin" style="top:55%;left:28%">
+      <div class="explore-pin-bubble" style="border-color:var(--accent)">🥾 Path of Gods</div>
+      <div class="explore-pin-tail" style="background:var(--accent)"></div>
+      <div class="explore-pin-dot" style="background:var(--accent)"></div>
+    </div>
+
+    <div class="explore-pin" style="top:65%;left:62%">
+      <div class="explore-pin-bubble" style="border-color:var(--periwinkle)">⛵ Li Galli Tour</div>
+      <div class="explore-pin-tail" style="background:var(--periwinkle)"></div>
+      <div class="explore-pin-dot" style="background:var(--periwinkle)"></div>
+    </div>
+
+    <div class="explore-pin" style="top:38%;left:70%">
+      <div class="explore-pin-bubble" style="border-color:var(--success)">🍋 Limoncello</div>
+      <div class="explore-pin-tail" style="background:var(--success)"></div>
+      <div class="explore-pin-dot" style="background:var(--success)"></div>
+    </div>
+
+    <div class="map-controls">
+      <div class="map-control-btn">+</div>
+      <div class="map-control-btn">−</div>
+      <div class="map-control-btn">📍</div>
+      <div class="map-control-btn">🗺</div>
+    </div>
+
+    <div class="map-coming-soon">
+      <div style="height:200px"></div>
+      <div class="map-coming-soon-card">
+        <div class="map-coming-soon-icon">🗺</div>
+        <div class="map-coming-soon-title">Google Maps coming soon</div>
+        <div class="map-coming-soon-sub">Real map integration with pins for saved places, restaurants, hotels and activities will load here.</div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>
