@@ -307,23 +307,24 @@
     <a href="community.html"    class="nav-link">Community</a>
     <a href="saved-guides.html" class="nav-link">Saved Guides</a>
   </div>
-  <a href="profile.html" class="nav-avatar" title="Profile">SC</a>
+  <a href="profile.html" class="nav-avatar" title="Profile" data-nav-avatar>SC</a>
 </nav>
 
 <div class="profile-hero">
   <div class="profile-hero-content">
     <div class="profile-avatar-wrap">
-      <div class="profile-avatar">C</div>
-      <button class="profile-avatar-edit">✏️</button>
+      <div class="profile-avatar" data-profile-avatar>C</div>
+      <label for="avatar-file-input" class="profile-avatar-edit" title="Change photo" style="cursor:pointer">✏️</label>
+      <input type="file" id="avatar-file-input" data-avatar-upload accept="image/*" style="display:none">
     </div>
     <div class="profile-info">
-      <div class="profile-name">Caitie F.</div>
-      <div class="profile-handle">@caitiefitz · Miami, FL</div>
-      <div class="profile-bio">Collector of passport stamps and good meals. Always planning the next one. ✈️🍝</div>
+      <div class="profile-name" data-profile-name>Caitie F.</div>
+      <div class="profile-handle" data-profile-location>@caitiefitz · Miami, FL</div>
+      <div class="profile-bio" data-profile-bio>Collector of passport stamps and good meals. Always planning the next one. ✈️🍝</div>
     </div>
     <div class="profile-stats-row">
       <div class="profile-stat">
-        <div class="profile-stat-num">12</div>
+        <div class="profile-stat-num" data-stat-trips>12</div>
         <div class="profile-stat-label">Trips</div>
       </div>
       <div class="profile-stat">
@@ -331,7 +332,7 @@
         <div class="profile-stat-label">Countries</div>
       </div>
       <div class="profile-stat">
-        <div class="profile-stat-num">4</div>
+        <div class="profile-stat-num" data-stat-guides>4</div>
         <div class="profile-stat-label">Guides</div>
       </div>
       <div class="profile-stat">
@@ -340,7 +341,7 @@
       </div>
     </div>
     <div class="profile-actions">
-      <button class="btn btn-primary btn-sm">Edit Profile</button>
+      <button class="btn btn-primary btn-sm" data-own-only onclick="openEditModal()">Edit Profile</button>
       <button class="btn btn-white-outline btn-sm">Share Profile</button>
     </div>
   </div>
@@ -361,7 +362,7 @@
     <div class="travel-stats">
       <div class="travel-stat-card">
         <div class="travel-stat-icon">✈️</div>
-        <div class="travel-stat-num" style="color:var(--primary)">12</div>
+        <div class="travel-stat-num" style="color:var(--primary)" data-stat-trips>—</div>
         <div class="travel-stat-label">Trips taken</div>
       </div>
       <div class="travel-stat-card">
@@ -370,51 +371,26 @@
         <div class="travel-stat-label">Countries visited</div>
       </div>
       <div class="travel-stat-card">
-        <div class="travel-stat-icon">🍴</div>
-        <div class="travel-stat-num" style="color:var(--success)">184</div>
-        <div class="travel-stat-label">Places visited</div>
+        <div class="travel-stat-icon">✅</div>
+        <div class="travel-stat-num" style="color:var(--success)" data-stat-completed>—</div>
+        <div class="travel-stat-label">Completed</div>
       </div>
     </div>
 
-    <!-- Trip history -->
+    <!-- Trip history — populated by profile.js -->
     <div style="font-family:var(--font-display);font-size:1.2rem;font-weight:600;margin-bottom:16px">
       Trip History
     </div>
-
-    <div class="trip-history-item">
-      <div class="trip-history-img" style="background:rgba(43,161,118,0.1)">🏝</div>
-      <div class="trip-history-info">
-        <div class="trip-history-name">Maldives</div>
-        <div class="trip-history-meta">Dec 2025 · 7 days · 2 travellers · $8,000</div>
-      </div>
-      <span class="badge badge-completed"><span class="badge-dot"></span>Completed</span>
+    <div data-profile-trips>
+      <p style="color:var(--text-muted)">Loading trips…</p>
     </div>
 
-    <div class="trip-history-item">
-      <div class="trip-history-img" style="background:rgba(168,159,200,0.1)">🦘</div>
-      <div class="trip-history-info">
-        <div class="trip-history-name">Australia — Sydney & Melbourne</div>
-        <div class="trip-history-meta">Dec 2025 · 10 days · 3 travellers · $6,500</div>
-      </div>
-      <span class="badge badge-completed"><span class="badge-dot"></span>Completed</span>
+    <!-- Guides — populated by profile.js -->
+    <div style="font-family:var(--font-display);font-size:1.2rem;font-weight:600;margin:28px 0 16px">
+      Published Guides
     </div>
-
-    <div class="trip-history-item">
-      <div class="trip-history-img" style="background:rgba(232,133,106,0.1)">🏛</div>
-      <div class="trip-history-info">
-        <div class="trip-history-name">Rome & Amalfi Coast</div>
-        <div class="trip-history-meta">Sep 2025 · 12 days · 4 travellers</div>
-      </div>
-      <span class="badge badge-planning"><span class="badge-dot"></span>Planning</span>
-    </div>
-
-    <div class="trip-history-item">
-      <div class="trip-history-img" style="background:rgba(143,163,212,0.1)">⛩</div>
-      <div class="trip-history-info">
-        <div class="trip-history-name">Japan — Tokyo & Kyoto</div>
-        <div class="trip-history-meta">Mar 2024 · 14 days · Solo</div>
-      </div>
-      <span class="badge badge-completed"><span class="badge-dot"></span>Completed</span>
+    <div data-profile-guides>
+      <p style="color:var(--text-muted)">Loading guides…</p>
     </div>
 
   </div>
@@ -461,5 +437,42 @@
 
 </div>
 
+<!-- ── EDIT PROFILE MODAL ── -->
+<div data-edit-modal data-own-only
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45);
+            z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:var(--background,#FDF8F5); border-radius:16px; padding:2rem;
+              width:min(520px, 90vw); position:relative; max-height:90vh; overflow-y:auto;">
+    <button onclick="closeEditModal()"
+            style="position:absolute; top:1rem; right:1rem; background:none;
+                   border:none; font-size:1.5rem; cursor:pointer; color:var(--text);">✕</button>
+    <h2 style="font-family:var(--font-display); font-size:1.75rem; margin:0 0 1.5rem;">Edit Profile</h2>
+    <form data-edit-profile-form>
+      <div class="form-group">
+        <label class="form-label">Display Name</label>
+        <input class="form-input" type="text" data-edit-name placeholder="Your name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Bio</label>
+        <textarea class="form-input" data-edit-bio rows="3"
+                  placeholder="Tell the community about yourself…" style="resize:vertical"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Location</label>
+        <input class="form-input" type="text" data-edit-location placeholder="e.g. Miami, FL">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Website</label>
+        <input class="form-input" type="url" data-edit-website placeholder="https://yoursite.com">
+      </div>
+      <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:1rem;">
+        <button type="button" class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" data-submit-btn>Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script type="module" src="profile.js"></script>
 </body>
 </html>

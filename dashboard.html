@@ -51,7 +51,7 @@
     <a href="community.html"      class="nav-link">Community</a>
     <a href="saved-guides.html"   class="nav-link">Saved Guides</a>
   </div>
-  <a href="profile.html" class="nav-avatar" title="Profile">SC</a>
+  <a href="profile.html" class="nav-avatar" title="Profile" data-nav-avatar>SC</a>
 </nav>
 
 <div class="page-wrapper">
@@ -60,10 +60,10 @@
   <!-- ── PAGE HEADER ── -->
   <div class="page-header animate-fade-up">
     <div>
-      <h1 class="display display-xl">Your Adventures</h1>
+      <h1 class="display display-xl" data-greeting>Your Adventures</h1>
       <p>Plan, explore, and relive every journey from one place.</p>
     </div>
-    <button class="btn btn-primary btn-lg" onclick="openNewTripModal()">
+    <button class="btn btn-primary btn-lg" data-open-new-trip onclick="openNewTripModal()">
       ＋ New Trip
     </button>
   </div>
@@ -74,189 +74,41 @@
     <div class="stat-card" onclick="scrollToSection('upcoming')">
       <div class="stat-card-bar" style="background:var(--status-upcoming)"></div>
       <div class="stat-card-label">Upcoming</div>
-      <div class="stat-card-number" style="color:var(--status-upcoming)">1</div>
-      <div class="stat-card-sub">Next: Bali in 38 days</div>
-    </div>
-
-    <div class="stat-card" onclick="scrollToSection('ongoing')">
-      <div class="stat-card-bar" style="background:var(--status-ongoing)"></div>
-      <div class="stat-card-label">Ongoing</div>
-      <div class="stat-card-number" style="color:var(--status-ongoing)">2</div>
-      <div class="stat-card-sub">Croatia · Greece</div>
+      <div class="stat-card-number" style="color:var(--status-upcoming)" data-stat-upcoming>—</div>
+      <div class="stat-card-sub">Your upcoming trips</div>
     </div>
 
     <div class="stat-card" onclick="scrollToSection('planning')">
       <div class="stat-card-bar" style="background:var(--status-planning)"></div>
       <div class="stat-card-label">Planning</div>
-      <div class="stat-card-number" style="color:var(--status-planning)">1</div>
-      <div class="stat-card-sub">Amalfi Coast</div>
+      <div class="stat-card-number" style="color:var(--status-planning)" data-stat-total>—</div>
+      <div class="stat-card-sub">Total trips</div>
     </div>
 
     <div class="stat-card" onclick="scrollToSection('completed')">
       <div class="stat-card-bar" style="background:var(--status-completed)"></div>
       <div class="stat-card-label">Completed</div>
-      <div class="stat-card-number" style="color:var(--status-completed)">1</div>
-      <div class="stat-card-sub">Maldives guide ready</div>
+      <div class="stat-card-number" style="color:var(--status-completed)" data-stat-past>—</div>
+      <div class="stat-card-sub">Trips completed</div>
+    </div>
+
+    <div class="stat-card" data-open-new-trip onclick="openNewTripModal()" style="cursor:pointer">
+      <div class="stat-card-bar" style="background:var(--primary)"></div>
+      <div class="stat-card-label">New Trip</div>
+      <div class="stat-card-number" style="color:var(--primary)">＋</div>
+      <div class="stat-card-sub">Start planning</div>
     </div>
 
   </div>
 
-  <!-- ── UPCOMING ── -->
-  <div id="upcoming" class="animate-fade-up animate-fade-up-2">
+  <!-- ── TRIPS GRID — populated by dashboard.js ── -->
+  <div id="upcoming">
     <div class="section-header">
-      <div class="section-dot" style="background:var(--status-upcoming)"></div>
-      <span class="section-title">Upcoming Trips</span>
-      <span class="section-count">1 trip</span>
+      <div class="section-dot" style="background:var(--primary)"></div>
+      <span class="section-title">Your Trips</span>
     </div>
-    <div class="trips-grid trips-grid-1">
-
-      <div class="card trip-card">
-        <div class="trip-card-img-placeholder" style="background:linear-gradient(135deg,#f0e6d3,#d4c4b0)">🌴</div>
-        <div class="card-body">
-          <div class="trip-card-badges">
-            <span class="badge badge-upcoming"><span class="badge-dot"></span>Upcoming</span>
-            <span class="badge-visibility">🔒 Private</span>
-          </div>
-          <div class="trip-card-name">Bali, Indonesia</div>
-          <div class="trip-card-meta">
-            <div class="trip-card-meta-row"><span>📅</span> Apr 15 – Apr 25, 2026</div>
-            <div class="trip-card-meta-row"><span>💰</span> Budget: $2,500</div>
-          </div>
-          <div class="trip-card-actions">
-            <button class="btn btn-primary btn-sm">🗺 Plan Trip</button>
-            <button class="btn btn-icon">✏️</button>
-            <button class="btn btn-icon">🗑</button>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ── ONGOING ── -->
-  <div id="ongoing" class="animate-fade-up animate-fade-up-3">
-    <div class="section-header">
-      <div class="section-dot" style="background:var(--status-ongoing)"></div>
-      <span class="section-title">Ongoing Trips</span>
-      <span class="section-count">2 trips</span>
-    </div>
-    <div class="trips-grid trips-grid-2">
-
-      <div class="card trip-card">
-        <div class="trip-card-img-placeholder" style="background:linear-gradient(135deg,#c8b89a,#e8c89a)">🏛</div>
-        <div class="card-body">
-          <div class="trip-card-badges">
-            <span class="badge badge-ongoing"><span class="badge-dot"></span>Ongoing</span>
-            <span class="badge-visibility">👁 Public</span>
-          </div>
-          <div class="trip-card-name">Dubrovnik, Croatia</div>
-          <div class="trip-card-meta">
-            <div class="trip-card-meta-row"><span>📅</span> Jun 20 – Jun 28, 2026</div>
-            <div class="trip-card-meta-row"><span>💰</span> Budget: $3,700</div>
-          </div>
-          <div class="collab-row">
-            <div class="collab-avatar" style="background:var(--primary)">SC</div>
-            <div class="collab-avatar" style="background:var(--secondary)">MJ</div>
-            <div class="collab-avatar" style="background:var(--accent)">KL</div>
-            <span class="collab-label">3 travellers</span>
-          </div>
-          <div class="trip-card-actions">
-            <button class="btn btn-primary btn-sm">🗺 Plan Trip</button>
-            <button class="btn btn-icon">✏️</button>
-            <button class="btn btn-icon">🗑</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="card trip-card">
-        <div class="trip-card-img-placeholder" style="background:linear-gradient(135deg,#b8c8e0,#d8e8f0)">⛵</div>
-        <div class="card-body">
-          <div class="trip-card-badges">
-            <span class="badge badge-ongoing"><span class="badge-dot"></span>Ongoing</span>
-            <span class="badge-visibility">🔒 Private</span>
-          </div>
-          <div class="trip-card-name">Santorini, Greece</div>
-          <div class="trip-card-meta">
-            <div class="trip-card-meta-row"><span>📅</span> Jul 10 – Jul 17, 2026</div>
-            <div class="trip-card-meta-row"><span>💰</span> Budget: $2,200</div>
-          </div>
-          <div class="collab-row">
-            <div class="collab-avatar" style="background:var(--primary)">SC</div>
-            <div class="collab-avatar" style="background:var(--peach)">AL</div>
-            <span class="collab-label">2 travellers</span>
-          </div>
-          <div class="trip-card-actions">
-            <button class="btn btn-primary btn-sm">🗺 Plan Trip</button>
-            <button class="btn btn-icon">✏️</button>
-            <button class="btn btn-icon">🗑</button>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ── IN PLANNING ── -->
-  <div id="planning" class="animate-fade-up animate-fade-up-4">
-    <div class="section-header">
-      <div class="section-dot" style="background:var(--status-planning)"></div>
-      <span class="section-title">In Planning</span>
-      <span class="section-count">1 trip</span>
-    </div>
-    <div class="trips-grid trips-grid-1">
-
-      <div class="card trip-card">
-        <div class="trip-card-img-placeholder" style="background:linear-gradient(135deg,#a8c4b8,#88a898)">🌊</div>
-        <div class="card-body">
-          <div class="trip-card-badges">
-            <span class="badge badge-planning"><span class="badge-dot"></span>Planning</span>
-            <span class="badge-visibility">👁 Public</span>
-          </div>
-          <div class="trip-card-name">Amalfi Coast, Italy</div>
-          <div class="trip-card-meta">
-            <div class="trip-card-meta-row"><span>📅</span> Sep 5 – Sep 15, 2026</div>
-            <div class="trip-card-meta-row"><span>💰</span> Budget: $4,500</div>
-          </div>
-          <div class="trip-card-actions">
-            <button class="btn btn-primary btn-sm">🗺 Plan Trip</button>
-            <button class="btn btn-icon">✏️</button>
-            <button class="btn btn-icon">🗑</button>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ── COMPLETED ── -->
-  <div id="completed" class="animate-fade-up animate-fade-up-5">
-    <div class="section-header">
-      <div class="section-dot" style="background:var(--status-completed)"></div>
-      <span class="section-title">Completed Trips</span>
-      <span class="section-count">1 trip</span>
-    </div>
-    <div class="trips-grid trips-grid-1">
-
-      <div class="card trip-card">
-        <div class="trip-card-img-placeholder" style="background:linear-gradient(135deg,#88b8c8,#a8d8e8)">🏝</div>
-        <div class="card-body">
-          <div class="trip-card-badges">
-            <span class="badge badge-completed"><span class="badge-dot"></span>Completed</span>
-            <span class="badge-visibility">👁 Public</span>
-          </div>
-          <div class="trip-card-name">Maldives</div>
-          <div class="trip-card-meta">
-            <div class="trip-card-meta-row"><span>📅</span> Dec 5 – Dec 12, 2025</div>
-            <div class="trip-card-meta-row"><span>💰</span> Budget: $8,000</div>
-          </div>
-          <div class="trip-card-actions">
-            <button class="btn btn-accent btn-sm">✦ Publish Guide</button>
-            <button class="btn btn-icon">✏️</button>
-            <button class="btn btn-icon">🗑</button>
-          </div>
-        </div>
-      </div>
-
+    <div class="trips-grid trips-grid-2" data-trips-grid>
+      <p style="color:var(--text-muted);padding:1rem 0;">Loading your trips…</p>
     </div>
   </div>
 
@@ -264,50 +116,42 @@
 </div>
 
 <!-- ── NEW TRIP MODAL ── -->
-<div class="modal-overlay" id="newTripModal" onclick="closeOnOverlay(event)">
+<div class="modal-overlay" id="newTripModal" data-new-trip-modal onclick="closeOnOverlay(event)">
   <div class="modal">
     <div class="modal-header">
       <h2 class="modal-title">New Trip</h2>
-      <button class="btn btn-icon" onclick="closeNewTripModal()">✕</button>
+      <button class="btn btn-icon" data-close-modal onclick="closeNewTripModal()">✕</button>
     </div>
-    <div class="form-group">
-      <label class="form-label">Destination</label>
-      <input class="form-input" type="text" placeholder="e.g. Tokyo, Japan">
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <p data-trip-form-error style="display:none;color:#E24B4A;font-size:.875rem;margin-bottom:1rem;"></p>
+    <form data-new-trip-form>
       <div class="form-group">
-        <label class="form-label">Start Date</label>
-        <input class="form-input" type="date">
+        <label class="form-label">Trip Name *</label>
+        <input class="form-input" type="text" name="title" placeholder="e.g. Portugal Summer 2026" required>
       </div>
       <div class="form-group">
-        <label class="form-label">End Date</label>
-        <input class="form-input" type="date">
+        <label class="form-label">Destination</label>
+        <input class="form-input" type="text" name="destination" placeholder="e.g. Lisbon, Portugal">
       </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Budget</label>
-      <input class="form-input" type="text" placeholder="e.g. $3,000">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Status</label>
-      <select class="form-input">
-        <option>Upcoming</option>
-        <option>Ongoing</option>
-        <option>Planning</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Visibility</label>
-      <select class="form-input">
-        <option>Private</option>
-        <option>Public</option>
-      </select>
-    </div>
-    <div class="divider"></div>
-    <div class="flex" style="gap:10px;justify-content:flex-end">
-      <button class="btn btn-ghost" onclick="closeNewTripModal()">Cancel</button>
-      <button class="btn btn-primary">Create Trip</button>
-    </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Start Date</label>
+          <input class="form-input" type="date" name="start_date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">End Date</label>
+          <input class="form-input" type="date" name="end_date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-input" name="notes" rows="3" placeholder="Anything you want to remember…" style="resize:vertical"></textarea>
+      </div>
+      <div class="divider"></div>
+      <div class="flex" style="gap:10px;justify-content:flex-end">
+        <button type="button" class="btn btn-ghost" data-close-modal onclick="closeNewTripModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" data-submit-btn>Create Trip →</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -322,21 +166,10 @@
     if (e.target === document.getElementById('newTripModal')) closeNewTripModal();
   }
   function scrollToSection(id) {
-    document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 </script>
-<script type="module">
-  import { supabase } from './supabase.js';
-
-  // Redirect to login if not authenticated
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    if (!session) window.location = 'login.html';
-  });
-
-  // Listen for auth changes (e.g. logout)
-  supabase.auth.onAuthStateChange((event, session) => {
-    if (!session) window.location = 'login.html';
-  });
-</script>
+<script type="module" src="dashboard.js"></script>
 </body>
 </html>
