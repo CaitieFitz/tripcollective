@@ -4,10 +4,7 @@
 // Handles: real trip data, New Trip modal save, user nav avatar
 // ============================================================
 
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase.js';
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { supabase } from './supabase.js';
 
 // ============================================================
 // AUTH GUARD — redirect if not logged in
