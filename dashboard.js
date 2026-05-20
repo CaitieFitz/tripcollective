@@ -22,16 +22,18 @@ async function requireAuth() {
 // PULL REAL USER NAME INTO NAV AVATAR
 // ============================================================
 async function loadUserProfile(userId) {
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('full_name, avatar_url')
-    .eq('id', userId)
-    .single();
+  const { data: profiles, error } = await supabase
+  .from('profiles')
+  .select('full_name, avatar_url')
+  .eq('id', userId)
+  .limit(1);
 
-  if (error) {
-    console.warn('Could not load profile:', error.message);
-    return;
-  }
+if (error || !profiles?.length) {
+  console.warn('Could not load profile:', error?.message);
+  return;
+}
+
+const profile = profiles[0];
 
   const name = profile?.full_name || 'Traveler';
   const avatarUrl = profile?.avatar_url;
