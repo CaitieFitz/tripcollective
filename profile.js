@@ -3,10 +3,7 @@
 // profile.js — drop this script tag into profile.html
 // ============================================================
 
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase.js';
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { supabase } from './supabase.js';
 
 // Detect if viewing own profile or someone else's
 // Usage: /profile.html (own) or /profile.html?id=uuid (other user)
