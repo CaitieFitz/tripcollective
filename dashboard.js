@@ -76,15 +76,15 @@ async function loadTrips(userId) {
     .from('trips')
     .select(`
       id,
-      title,
+      name,
       destination,
       start_date,
       end_date,
-      cover_image_url,
+      cover_image,
       status,
       created_at
     `)
-    .eq('owner_id', userId)
+    .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -131,7 +131,7 @@ function renderTrips(trips) {
     const end = trip.end_date ? formatDate(trip.end_date) : null;
     const dateRange = start && end ? `${start} – ${end}` : start || 'Dates TBD';
     const statusLabel = getTripStatus(trip);
-    const cover = trip.cover_image_url || '';
+    const cover = trip.cover_image || '';
 
     return `
       <a href="/trip-planner.html?id=${trip.id}" class="trip-card" style="text-decoration:none; display:block;">
@@ -139,7 +139,7 @@ function renderTrips(trips) {
           <span class="trip-card__status trip-card__status--${statusLabel.toLowerCase()}">${statusLabel}</span>
         </div>
         <div class="trip-card__body">
-          <h3 class="trip-card__title">${escapeHtml(trip.title)}</h3>
+          <h3 class="trip-card__title">${escapeHtml(trip.name)}</h3>
           ${trip.destination ? `<p class="trip-card__destination">📍 ${escapeHtml(trip.destination)}</p>` : ''}
           <p class="trip-card__dates">${dateRange}</p>
         </div>
@@ -216,12 +216,11 @@ async function saveNewTrip(e) {
   const { data: newTrip, error } = await supabase
     .from('trips')
     .insert({
-      owner_id: session.user.id,
-      title,
+      user_id: session.user.id,
+      name: title,
       destination: destination || null,
       start_date: startDate,
       end_date: endDate,
-      notes,
       status: 'planning',
       created_at: new Date().toISOString(),
     })

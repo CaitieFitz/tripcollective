@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadProfile(userId) {
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('full_name, avatar_url, bio, location, website, created_at')
+    .select('full_name, avatar_url, bio, location, created_at')
     .eq('id', userId)
     .single();
 
@@ -69,7 +69,6 @@ async function loadProfile(userId) {
   setEl('[data-profile-name]', profile.full_name || 'Traveler');
   setEl('[data-profile-bio]', profile.bio || (isOwnProfile ? 'Add a bio to tell the community about yourself.' : ''));
   setEl('[data-profile-location]', profile.location || '');
-  setEl('[data-profile-website]', profile.website || '');
   setEl('[data-profile-joined]', `Member since ${formatDate(profile.created_at, true)}`);
 
   // Avatar
@@ -89,7 +88,6 @@ async function loadProfile(userId) {
     setInputVal('[data-edit-name]', profile.full_name || '');
     setInputVal('[data-edit-bio]', profile.bio || '');
     setInputVal('[data-edit-location]', profile.location || '');
-    setInputVal('[data-edit-website]', profile.website || '');
   }
 }
 
@@ -100,7 +98,7 @@ async function loadTripStats(userId) {
   const { data: trips, error } = await supabase
     .from('trips')
     .select('id, status, end_date')
-    .eq('owner_id', userId);
+    .eq('user_id', userId);
 
   if (error) return;
 
@@ -119,8 +117,8 @@ async function loadTripStats(userId) {
 async function loadPublicTrips(userId) {
   const query = supabase
     .from('trips')
-    .select('id, title, destination, start_date, end_date, cover_image_url, status')
-    .eq('owner_id', userId)
+    .select('id, name, destination, start_date, end_date, cover_image, status')
+    .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(6);
 
@@ -139,14 +137,14 @@ async function loadPublicTrips(userId) {
   }
 
   container.innerHTML = trips.map(trip => {
-    const cover = trip.cover_image_url || '';
+    const cover = trip.cover_image || '';
     const start = trip.start_date ? formatDate(trip.start_date) : 'TBD';
     return `
       <a href="/trip-planner.html?id=${trip.id}" class="profile-trip-card" style="text-decoration:none;">
         <div class="profile-trip-card__cover" style="background:${cover ? `url('${cover}') center/cover` : '#E8856A22'};">
         </div>
         <div class="profile-trip-card__info">
-          <strong>${escapeHtml(trip.title)}</strong>
+          <strong>${escapeHtml(trip.name)}</strong>
           ${trip.destination ? `<span>📍 ${escapeHtml(trip.destination)}</span>` : ''}
           <span>${start}</span>
         </div>
@@ -161,9 +159,9 @@ async function loadPublicTrips(userId) {
 async function loadPublishedGuides(userId) {
   const { data: guides, error } = await supabase
     .from('guides')
-    .select('id, title, destination, cover_image_url, created_at')
-    .eq('author_id', userId)
-    .eq('status', 'published')
+    .select('id, title, destination, cover_image, created_at')
+    .eq('user_id', userId)
+    .not('published_at', 'is', null)
     .order('created_at', { ascending: false })
     .limit(4);
 
@@ -181,7 +179,7 @@ async function loadPublishedGuides(userId) {
 
   container.innerHTML = guides.map(g => `
     <a href="/guide.html?id=${g.id}" class="profile-guide-card" style="text-decoration:none;">
-      <div class="profile-guide-card__cover" style="background:${g.cover_image_url ? `url('${g.cover_image_url}') center/cover` : '#A89FC822'};"></div>
+      <div class="profile-guide-card__cover" style="background:${g.cover_image ? `url('${g.cover_image}') center/cover` : '#A89FC822'};"></div>
       <div class="profile-guide-card__info">
         <strong>${escapeHtml(g.title)}</strong>
         ${g.destination ? `<span>${escapeHtml(g.destination)}</span>` : ''}
@@ -210,7 +208,6 @@ function wireEditForm() {
       full_name: form.querySelector('[data-edit-name]')?.value?.trim() || null,
       bio: form.querySelector('[data-edit-bio]')?.value?.trim() || null,
       location: form.querySelector('[data-edit-location]')?.value?.trim() || null,
-      website: form.querySelector('[data-edit-website]')?.value?.trim() || null,
       updated_at: new Date().toISOString(),
     };
 
@@ -223,11 +220,9 @@ function wireEditForm() {
       showToast('Could not save changes. Please try again.', 'error');
     } else {
       showToast('Profile updated!', 'success');
-      // Refresh displayed values
       setEl('[data-profile-name]', updates.full_name || 'Traveler');
       setEl('[data-profile-bio]', updates.bio || '');
       setEl('[data-profile-location]', updates.location || '');
-      setEl('[data-profile-website]', updates.website || '');
       closeEditModal();
     }
 
