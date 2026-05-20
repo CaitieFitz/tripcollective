@@ -55,15 +55,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 // LOAD PROFILE
 // ============================================================
 async function loadProfile(userId) {
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('full_name, avatar_url, bio, location, created_at')
-    .eq('id', userId)
-    .single();
+const { data: profiles, error } = await supabase
+  .from('profiles')
+  .select('full_name, avatar_url, bio, location, created_at')
+  .eq('id', userId)
+  .limit(1);
 
-  if (error || !profile) {
-    console.warn('Profile not found:', error?.message);
-    return;
+if (error || !profiles?.length) {
+  console.warn('Profile not found:', error?.message);
+  return;
+}
+
+const profile = profiles[0];
   }
 
   setEl('[data-profile-name]', profile.full_name || 'Traveler');
