@@ -871,11 +871,9 @@
     <div class="trip-header-left">
       <button class="trip-back" onclick="window.location='dashboard.html'">←</button>
       <div class="trip-title-block">
-        <div class="trip-name">Amalfi Coast, Italy</div>
+        <div class="trip-name">Loading…</div>
         <div class="trip-meta-row">
-          <span class="trip-meta-item">📅 Sep 5 – Sep 15, 2026</span>
-          <span class="trip-meta-item">💰 $4,500 budget</span>
-          <span class="badge badge-planning"><span class="badge-dot"></span>Planning</span>
+          <span class="trip-meta-item" style="color:var(--text-muted)">Loading trip…</span>
         </div>
       </div>
     </div>
@@ -937,39 +935,9 @@
     <button class="legend-manage" onclick="openCategoryManager()">⚙ Manage categories</button>
   </div>
 
-  <!-- ── DAY NAV ── -->
+  <!-- ── DAY NAV — populated by trip-planner.js ── -->
   <div class="day-nav" id="dayNav">
-    <button class="day-tab active" onclick="selectDay(0, this)">
-      <span class="day-tab-num">1</span>
-      <span class="day-tab-label">Sep 5 · Sat</span>
-      <span class="day-tab-dot"></span>
-    </button>
-    <button class="day-tab" onclick="selectDay(1, this)">
-      <span class="day-tab-num">2</span>
-      <span class="day-tab-label">Sep 6 · Sun</span>
-      <span class="day-tab-dot"></span>
-    </button>
-    <button class="day-tab" onclick="selectDay(2, this)">
-      <span class="day-tab-num">3</span>
-      <span class="day-tab-label">Sep 7 · Mon</span>
-      <span class="day-tab-dot"></span>
-    </button>
-    <button class="day-tab" onclick="selectDay(3, this)">
-      <span class="day-tab-num">4</span>
-      <span class="day-tab-label">Sep 8 · Tue</span>
-      <span class="day-tab-dot"></span>
-    </button>
-    <button class="day-tab" onclick="selectDay(4, this)">
-      <span class="day-tab-num">5</span>
-      <span class="day-tab-label">Sep 9 · Wed</span>
-      <span class="day-tab-dot"></span>
-    </button>
-    <button class="day-tab" onclick="selectDay(5, this)">
-      <span class="day-tab-num">6</span>
-      <span class="day-tab-label">Sep 10 · Thu</span>
-      <span class="day-tab-dot"></span>
-    </button>
-    <button class="day-nav-add" title="Add day">+</button>
+    <span style="padding:14px 28px;color:var(--text-muted);font-size:0.8rem;">Loading days…</span>
   </div>
 
   <!-- ── MAIN AREA ── -->
@@ -1005,166 +973,13 @@
         </div>
       </div>
 
-      <!-- ── CARD / LIST VIEW ── -->
+      <!-- ── CARD / LIST VIEW — populated by trip-planner.js ── -->
       <div class="card-view" id="card-view">
-
-        <!-- Day 1 -->
-        <div class="card-view-day animate-fade-up">
-          <div class="card-day-header">
-            <div class="card-day-num">01</div>
-            <div class="card-day-info">
-              <div class="card-day-name">Saturday, September 5</div>
-              <div class="card-day-meta">📍 Amalfi · 4 activities planned</div>
-            </div>
-            <div class="card-day-actions">
-              <button class="btn btn-ghost btn-sm" onclick="openActivityModal()">+ Add</button>
-            </div>
-          </div>
-          <div class="card-activities">
-
-            <div class="card-activity">
-              <div class="card-activity-time">10:00a</div>
-              <div class="card-activity-bar" style="background:#EBA8B8"></div>
-              <div class="card-activity-body">
-                <div class="card-activity-name">Arrive Naples, transfer to Amalfi</div>
-                <div class="card-activity-meta">
-                  <span>✈️ Travel · ~2 hrs</span>
-                  <span class="card-activity-source">Booking</span>
-                </div>
-              </div>
-              <div class="card-activity-actions">
-                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">✏️</button>
-                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">🗑</button>
-              </div>
-            </div>
-
-            <div class="card-activity">
-              <div class="card-activity-time">1:00p</div>
-              <div class="card-activity-bar" style="background:#E8856A"></div>
-              <div class="card-activity-body">
-                <div class="card-activity-name">Check in — Villa Cimbrone</div>
-                <div class="card-activity-meta">
-                  <span>🏨 Accommodation</span>
-                  <span class="card-activity-source">Direct</span>
-                </div>
-              </div>
-              <div class="card-activity-actions">
-                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">✏️</button>
-                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">🗑</button>
-              </div>
-            </div>
-
-            <div class="card-activity">
-              <div class="card-activity-time">3:30p</div>
-              <div class="card-activity-bar" style="background:#A89FC8"></div>
-              <div class="card-activity-body">
-                <div class="card-activity-name">Walk the Path of the Gods</div>
-                <div class="card-activity-meta">
-                  <span>🥾 Outdoors · 3 hrs</span>
-                  <span class="card-activity-source">Lonely Planet</span>
-                </div>
-              </div>
-              <div class="card-activity-actions">
-                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">✏️</button>
-                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">🗑</button>
-              </div>
-            </div>
-
-            <div class="card-activity">
-              <div class="card-activity-time">7:30p</div>
-              <div class="card-activity-bar" style="background:#2BA176"></div>
-              <div class="card-activity-body">
-                <div class="card-activity-name">Dinner at Ristorante Pizzeria da Gemma</div>
-                <div class="card-activity-meta">
-                  <span>🍝 Food & Drink · Dinner</span>
-                  <span class="card-activity-source">Michelin ★</span>
-                </div>
-              </div>
-              <div class="card-activity-actions">
-                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">✏️</button>
-                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">🗑</button>
-              </div>
-            </div>
-
-            <button class="card-add-activity" onclick="openActivityModal()">
-              + Add activity to Day 1
-            </button>
-
-          </div>
-        </div>
-
-        <!-- Day 2 -->
-        <div class="card-view-day animate-fade-up animate-fade-up-2">
-          <div class="card-day-header">
-            <div class="card-day-num">02</div>
-            <div class="card-day-info">
-              <div class="card-day-name">Sunday, September 6</div>
-              <div class="card-day-meta">📍 Positano · 3 activities planned</div>
-            </div>
-            <div class="card-day-actions">
-              <button class="btn btn-ghost btn-sm" onclick="openActivityModal()">+ Add</button>
-            </div>
-          </div>
-          <div class="card-activities">
-
-            <div class="card-activity">
-              <div class="card-activity-time">10:00a</div>
-              <div class="card-activity-bar" style="background:#A89FC8"></div>
-              <div class="card-activity-body">
-                <div class="card-activity-name">Boat tour to Positano & Li Galli</div>
-                <div class="card-activity-meta">
-                  <span>⛵ Outdoors · Full day</span>
-                  <span class="card-activity-source">CNT ★</span>
-                </div>
-              </div>
-              <div class="card-activity-actions">
-                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">✏️</button>
-                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">🗑</button>
-              </div>
-            </div>
-
-            <div class="card-activity">
-              <div class="card-activity-time">1:30p</div>
-              <div class="card-activity-bar" style="background:#2BA176"></div>
-              <div class="card-activity-body">
-                <div class="card-activity-name">Lunch at Da Adolfo</div>
-                <div class="card-activity-meta">
-                  <span>🍴 Food & Drink · Lunch</span>
-                  <span class="card-activity-source">Eater ★</span>
-                </div>
-              </div>
-              <div class="card-activity-actions">
-                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">✏️</button>
-                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">🗑</button>
-              </div>
-            </div>
-
-            <div class="card-activity">
-              <div class="card-activity-time">5:00p</div>
-              <div class="card-activity-bar" style="background:#8FA3D4"></div>
-              <div class="card-activity-body">
-                <div class="card-activity-name">Sunset at Sponda Church steps</div>
-                <div class="card-activity-meta">
-                  <span>🏛 Culture · 1 hr</span>
-                  <span class="card-activity-source">Sarah ★</span>
-                </div>
-              </div>
-              <div class="card-activity-actions">
-                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">✏️</button>
-                <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem">🗑</button>
-              </div>
-            </div>
-
-            <button class="card-add-activity" onclick="openActivityModal()">
-              + Add activity to Day 2
-            </button>
-
-          </div>
-        </div>
-
+        <div style="padding:2rem;color:var(--text-muted);text-align:center">Loading itinerary…</div>
       </div>
 
     </div>
+
 
     <!-- ── MAP PANEL ── -->
     <div class="map-panel" id="mapPanel">
@@ -1413,6 +1228,7 @@
     alert('Category manager coming soon! You\'ll be able to add, rename, and recolor categories here.');
   }
 </script>
+<script type="module" src="trip-planner.js"></script>
 
 </body>
 </html>
