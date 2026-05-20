@@ -83,7 +83,9 @@ async function loadTrips(userId) {
       start_date,
       end_date,
       cover_image,
+      cover_image_position,
       status,
+      visibility,
       created_at
     `)
     .eq('user_id', userId)
@@ -135,6 +137,7 @@ function renderTrips(trips) {
     const statusLabel = getTripStatus(trip);
     const cover = trip.cover_image || '';
     const hasCover = !!cover;
+    const bgPos = trip.cover_image_position || '50% 50%';
 
     return `
       <div class="card trip-card" style="position:relative; overflow:hidden; padding:0;">
@@ -145,14 +148,15 @@ function renderTrips(trips) {
              style="
                height: 160px;
                background: ${hasCover
-                 ? `url('${cover}') center/cover no-repeat`
+                 ? `url('${cover}') ${bgPos}/cover no-repeat`
                  : 'linear-gradient(135deg, #E8856A22, #A89FC844)'};
                position: relative;
                display: flex;
                align-items: flex-end;
                justify-content: flex-end;
                padding: 10px;
-             ">
+             "
+             data-bg-pos="${bgPos}">
 
           <!-- Status badge top-left -->
           <span class="badge badge-${statusLabel.toLowerCase()}"
@@ -179,10 +183,31 @@ function renderTrips(trips) {
           </label>
           <input type="file"
                  id="photo-${trip.id}"
-                 accept="image/*"
+                 accept="image/jpeg,image/png,image/webp"
                  style="display:none"
                  onchange="uploadTripCover('${trip.id}', this)"
                  onclick="event.stopPropagation()">
+
+          <!-- Reposition button — only shown when cover exists -->
+          ${hasCover ? `
+          <button title="Drag to reposition photo"
+                  style="
+                    width: 32px; height: 32px;
+                    background: rgba(0,0,0,0.45);
+                    border: none;
+                    border-radius: 50%;
+                    display: flex; align-items: center; justify-content: center;
+                    cursor: grab; font-size: 0.9rem;
+                    margin-left: 6px;
+                    transition: background 0.2s;
+                    flex-shrink: 0;
+                  "
+                  onmouseover="this.style.background='rgba(0,0,0,0.7)'"
+                  onmouseout="this.style.background='rgba(0,0,0,0.45)'"
+                  onmousedown="startReposition(event, '${trip.id}')"
+                  onclick="event.stopPropagation()">
+            ✥
+          </button>` : ''}
         </div>
 
         <!-- Card body — clickable to open trip -->
@@ -263,8 +288,66 @@ async function uploadTripCover(tripId, input) {
 }
 
 // ============================================================
-// TOAST NOTIFICATION
+// DRAG TO REPOSITION COVER PHOTO
 // ============================================================
+let repoState = null;
+
+function startReposition(e, tripId) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const coverEl = document.getElementById(`cover-${tripId}`);
+  if (!coverEl) return;
+
+  // Parse current background-position (default 50% 50%)
+  const style = window.getComputedStyle(coverEl);
+  const pos = coverEl.dataset.bgPos || '50% 50%';
+  let [xPct, yPct] = pos.split(' ').map(p => parseFloat(p));
+
+  repoState = { tripId, coverEl, startX: e.clientX, startY: e.clientY, xPct, yPct };
+
+  coverEl.style.cursor = 'grabbing';
+  document.addEventListener('mousemove', onRepoMove);
+  document.addEventListener('mouseup', onRepoEnd);
+}
+
+function onRepoMove(e) {
+  if (!repoState) return;
+  const { coverEl, startX, startY } = repoState;
+
+  const dx = e.clientX - startX;
+  const dy = e.clientY - startY;
+
+  // Each pixel of drag = ~0.3% position shift (tune as needed)
+  let newX = Math.max(0, Math.min(100, repoState.xPct - dx * 0.3));
+  let newY = Math.max(0, Math.min(100, repoState.yPct - dy * 0.3));
+
+  coverEl.style.backgroundPosition = `${newX}% ${newY}%`;
+  coverEl.dataset.bgPos = `${newX}% ${newY}%`;
+}
+
+async function onRepoEnd(e) {
+  if (!repoState) return;
+
+  const { tripId, coverEl } = repoState;
+  coverEl.style.cursor = 'default';
+  document.removeEventListener('mousemove', onRepoMove);
+  document.removeEventListener('mouseup', onRepoEnd);
+
+  const pos = coverEl.dataset.bgPos || '50% 50%';
+
+  // Save position to DB
+  const { error } = await supabase
+    .from('trips')
+    .update({ cover_image_position: pos })
+    .eq('id', tripId);
+
+  if (!error) {
+    showToast('Position saved!', 'success');
+  }
+
+  repoState = null;
+}
 function showToast(msg, type = 'success') {
   const existing = document.querySelector('.tc-toast');
   if (existing) existing.remove();
@@ -448,3 +531,4 @@ window.openNewTripModal = openNewTripModal;
 window.closeNewTripModal = closeNewTripModal;
 window.signOut = signOut;
 window.uploadTripCover = uploadTripCover;
+window.startReposition = startReposition;
