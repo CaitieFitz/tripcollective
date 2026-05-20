@@ -13,21 +13,54 @@ let tripData = null;       // the trip row
 let allActivities = [];    // all activities for this trip
 let currentDay = 1;        // currently selected day tab
 
+let currentUserId = null;
+let dataReady = false; // prevents renders before data is loaded
+
 // ============================================================
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) { window.location.href = 'login.html'; return; }
-
   if (!TRIP_ID) { window.location.href = 'dashboard.html'; return; }
+
+  currentUserId = session.user.id;
 
   await Promise.all([
     loadTrip(session.user.id),
     loadActivities(),
   ]);
 
+  dataReady = true;
+
   wireAddActivityForm(session.user.id);
+
+  // Override setView so switching views re-renders with real data
+  // Only fires on explicit user view switches, not on initial load
+  const originalSetView = window.setView;
+  let initialRenderDone = false;
+  window.setView = function(view) {
+    originalSetView(view);
+    if (!dataReady || !initialRenderDone) return;
+    if (view === 'card') renderCurrentDay();
+    if (view === 'grid') window.buildGrid();
+  };
+
+  // Fix map toggle
+  window.toggleMap = function() {
+    const panel = document.getElementById('mapPanel');
+    const btn = document.querySelector('.map-toggle-btn');
+    if (!panel) return;
+    const isCollapsed = panel.classList.contains('collapsed');
+    panel.classList.toggle('collapsed', !isCollapsed);
+    if (btn) btn.textContent = isCollapsed ? 'Hide map' : 'Show map';
+  };
+
+  // Single initial render — after this, setView handles subsequent switches
+  const activeView = document.getElementById('card-view')?.classList.contains('active') ? 'card' : 'grid';
+  if (activeView === 'card') renderCurrentDay();
+  else window.buildGrid();
+  initialRenderDone = true;
 });
 
 // ============================================================
@@ -97,7 +130,7 @@ async function loadActivities() {
 
   allActivities = activities || [];
   buildDayNav();
-  renderCurrentDay();
+  // setView override handles the initial render
 }
 
 // ============================================================
@@ -136,7 +169,21 @@ window.selectDay = function(dayNum, el) {
   document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   currentDay = dayNum;
-  renderCurrentDay();
+  const inGrid = document.getElementById('grid-view')?.classList.contains('active');
+  if (inGrid) {
+    // Scroll the grid header to show selected day
+    const gridHeaderRow = document.querySelector('.grid-header-row');
+    if (gridHeaderRow) {
+      const days = [...new Set(allActivities.map(a => a.day_number))].sort((a,b) => a-b);
+      const idx = days.indexOf(dayNum);
+      if (idx > -1) {
+        const headerCells = gridHeaderRow.querySelectorAll('.grid-day-header');
+        if (headerCells[idx]) headerCells[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+  } else {
+    renderCurrentDay();
+  }
 };
 
 window.addDay = function() {
@@ -174,7 +221,6 @@ function renderCurrentDay() {
 }
 
 function renderCardView(activities) {
-  // Find the card-view day section and replace its content
   const cardView = document.getElementById('card-view');
   if (!cardView) return;
 
@@ -186,56 +232,58 @@ function renderCardView(activities) {
     ? activities[0].location.split(',').slice(-2).join(',').trim()
     : tripData?.destination || '';
 
+  const dayNum = String(currentDay).padStart(2, '0');
+
   cardView.innerHTML = `
-    <div class="day-section active">
-      <div class="day-section-header">
-        <div class="day-section-num">0${currentDay}</div>
-        <div>
-          <div class="day-section-date">${dateLabel}</div>
-          <div class="day-section-location">${locationLabel} · ${activities.length} activit${activities.length === 1 ? 'y' : 'ies'} planned</div>
+    <div class="card-view-day">
+      <div class="card-day-header">
+        <div class="card-day-num">${dayNum}</div>
+        <div class="card-day-info">
+          <div class="card-day-name">${dateLabel}</div>
+          <div class="card-day-meta">📍 ${locationLabel} · ${activities.length} activit${activities.length === 1 ? 'y' : 'ies'} planned</div>
         </div>
-        <button class="btn btn-ghost btn-sm" style="margin-left:auto"
-                onclick="openActivityModal()">+ Add</button>
+        <div class="card-day-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openActivityModal()">+ Add</button>
+        </div>
       </div>
 
-      ${activities.length === 0
-        ? `<div style="text-align:center;padding:2rem;color:var(--text-muted)">
-             No activities yet for this day.
-           </div>`
-        : activities.map(a => renderActivityCard(a)).join('')
-      }
-
-      <button class="card-add-activity" onclick="openActivityModal()">
-        + Add activity to Day ${currentDay}
-      </button>
+      <div class="card-activities">
+        ${activities.length === 0
+          ? `<div style="text-align:center;padding:2rem;color:var(--text-muted)">No activities yet — add one above.</div>`
+          : activities.map(a => renderActivityCard(a)).join('')
+        }
+        <button class="card-add-activity" onclick="openActivityModal()">
+          + Add activity to Day ${currentDay}
+        </button>
+      </div>
     </div>
   `;
 }
 
 function renderActivityCard(a) {
-  const categoryConfig = getCategoryConfig(a.category);
+  const cfg = getCategoryConfig(a.category);
   const timeStr = a.start_time ? formatTime(a.start_time) : '';
   const duration = a.duration_minutes ? formatDuration(a.duration_minutes) : '';
 
   return `
-    <div class="activity-card" data-activity-id="${a.id}">
-      <div class="activity-card-time">${timeStr}</div>
-      <div class="activity-card-bar" style="background:${categoryConfig.color}"></div>
-      <div class="activity-card-content">
-        <div class="activity-card-top">
-          <div class="activity-card-name">${escapeHtml(a.name)}</div>
-          <button class="activity-card-menu" onclick="openActivityOptions('${a.id}')">···</button>
+    <div class="card-activity" data-activity-id="${a.id}">
+      <div class="card-activity-time">${timeStr}</div>
+      <div class="card-activity-bar" style="background:${cfg.color}"></div>
+      <div class="card-activity-body">
+        <div class="card-activity-name">${escapeHtml(a.name)}</div>
+        <div class="card-activity-meta">
+          <span>${cfg.icon} ${cfg.label}${duration ? ` · ${duration}` : ''}</span>
+          ${a.source ? `<span class="card-activity-source">${escapeHtml(a.source)}</span>` : ''}
         </div>
-        <div class="activity-card-meta">
-          <span class="activity-cat cat-${a.category || 'other'}">
-            ${categoryConfig.icon} ${categoryConfig.label}
-            ${duration ? `· ${duration}` : ''}
-          </span>
-          ${a.source ? `<span class="activity-source-pill">${escapeHtml(a.source)}</span>` : ''}
-        </div>
-        ${a.location ? `<div class="activity-card-location">📍 ${escapeHtml(a.location)}</div>` : ''}
-        ${a.personal_note ? `<div class="activity-card-note">${escapeHtml(a.personal_note)}</div>` : ''}
-        ${a.tip ? `<div class="activity-card-tip">💡 ${escapeHtml(a.tip)}</div>` : ''}
+        ${a.location ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px">📍 ${escapeHtml(a.location)}</div>` : ''}
+        ${a.personal_note ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px">${escapeHtml(a.personal_note)}</div>` : ''}
+        ${a.tip ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px">💡 ${escapeHtml(a.tip)}</div>` : ''}
+      </div>
+      <div class="card-activity-actions">
+        <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem"
+                onclick="openEditActivity('${a.id}')" title="Edit">✏️</button>
+        <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem"
+                onclick="confirmDeleteActivity('${a.id}')" title="Delete">🗑</button>
       </div>
     </div>
   `;
@@ -250,47 +298,127 @@ const TIME_SLOTS = [
 ];
 
 // Override the existing buildGrid to use real data
-window.buildGrid = function() {
+window.buildGrid = async function() {
   const body = document.getElementById('gridBody');
   if (!body) return;
 
-  // Get days shown in nav
   const days = [...new Set(allActivities.map(a => a.day_number))].sort((a,b) => a-b);
-  if (days.length === 0) { body.innerHTML = '<p style="padding:1rem;color:var(--text-muted)">No activities yet.</p>'; return; }
+  if (days.length === 0) {
+    body.innerHTML = '<p style="padding:1rem;color:var(--text-muted)">No activities yet.</p>';
+    return;
+  }
+
+  // Set CSS variable on scroll wrapper
+  const gridView = document.getElementById('grid-view');
+  const scrollWrap = gridView?.querySelector('.grid-scroll-wrap');
+  const target = scrollWrap || gridView;
+  if (target) target.style.setProperty('--day-count', days.length);
+
+  const colTemplate = `56px repeat(${days.length}, 140px)`;
+
+  // Load reservations for hotel row
+  let hotels = [];
+  try {
+    const { data } = await supabase
+      .from('reservations')
+      .select('name, start_datetime, end_datetime, type')
+      .eq('trip_id', TRIP_ID)
+      .eq('type', 'hotel');
+    hotels = data || [];
+  } catch(e) {}
+
+  // Build hotel row HTML — span across days covered by reservation
+  function getHotelForDay(dayNum) {
+    const acts = allActivities.filter(a => a.day_number === dayNum);
+    const dateStr = acts[0]?.activity_date;
+    if (!dateStr) return null;
+    const date = new Date(dateStr);
+    return hotels.find(h => {
+      const start = new Date(h.start_datetime);
+      const end = new Date(h.end_datetime);
+      return date >= start && date < end;
+    });
+  }
+
+  // Update grid header
+  const gridHeaderRow = document.querySelector('.grid-header-row');
+  if (gridHeaderRow) {
+    gridHeaderRow.style.gridTemplateColumns = colTemplate;
+    gridHeaderRow.innerHTML = `<div class="grid-time-header">TIME</div>` +
+      days.map(d => {
+        const acts = allActivities.filter(a => a.day_number === d);
+        const date = acts[0]?.activity_date ? new Date(acts[0].activity_date) : null;
+        const dayName = date ? date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase() : `DAY ${d}`;
+        const dayNum = date ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+        const location = acts[0]?.location ? acts[0].location.split(',')[0] : '';
+        return `
+          <div class="grid-day-header">
+            <div class="grid-day-name">${dayName}</div>
+            <div class="grid-day-date">${dayNum}</div>
+            ${location ? `<div class="grid-day-location">📍 ${location}</div>` : ''}
+          </div>`;
+      }).join('');
+  }
+
+  // Hotel row — just below header
+  let hotelRowEl = document.getElementById('grid-hotel-row');
+  if (!hotelRowEl) {
+    hotelRowEl = document.createElement('div');
+    hotelRowEl.id = 'grid-hotel-row';
+    hotelRowEl.className = 'grid-hotel-row';
+    gridHeaderRow?.after(hotelRowEl);
+  }
+  if (hotels.length > 0) {
+    let hotelHtml = `<div class="grid-hotel-label">🏨</div>`;
+    days.forEach(d => {
+      const hotel = getHotelForDay(d);
+      // Check if this is the first day of this hotel stay
+      const prevHotel = d > days[0] ? getHotelForDay(days[days.indexOf(d) - 1]) : null;
+      if (hotel && hotel !== prevHotel) {
+        // Count how many consecutive days this hotel spans
+        let span = 0;
+        for (let i = days.indexOf(d); i < days.length; i++) {
+          if (getHotelForDay(days[i]) === hotel) span++;
+          else break;
+        }
+        hotelHtml += `<div class="grid-hotel-cell grid-hotel-cell--filled" style="grid-column: span ${span}">
+          <span>${escapeHtml(hotel.name)}</span>
+        </div>`;
+      } else if (!hotel) {
+        hotelHtml += `<div class="grid-hotel-cell"></div>`;
+      }
+      // If same hotel as previous day, it's already spanned — skip
+    });
+    hotelRowEl.innerHTML = hotelHtml;
+    hotelRowEl.style.display = 'grid';
+    hotelRowEl.style.gridTemplateColumns = colTemplate;
+  } else {
+    hotelRowEl.style.display = 'none';
+  }
 
   // Build time → activity lookup per day
   const byDay = {};
   days.forEach(d => { byDay[d] = {}; });
   allActivities.forEach(a => {
-    if (!a.start_time) return;
+    if (!a.start_time || !byDay[a.day_number]) return;
     const slot = timeToSlot(a.start_time);
-    if (slot && byDay[a.day_number]) {
-      byDay[a.day_number][slot] = a;
-    }
+    if (slot) byDay[a.day_number][slot] = a;
   });
-
-  // Update grid header columns
-  const gridHeader = document.querySelector('.grid-header');
-  if (gridHeader) {
-    gridHeader.innerHTML = `<div class="grid-header-time"></div>` +
-      days.map(d => {
-        const acts = allActivities.filter(a => a.day_number === d);
-        const dateStr = acts[0]?.activity_date ? formatDayLabel(acts[0].activity_date) : '';
-        return `<div class="grid-header-day"><span>Day ${d}</span><small>${dateStr}</small></div>`;
-      }).join('');
-  }
 
   body.innerHTML = '';
   TIME_SLOTS.forEach(slot => {
     const row = document.createElement('div');
     row.className = 'grid-row';
-    let html = `<div class="grid-time-cell">${slot}</div>`;
+    row.style.gridTemplateColumns = colTemplate;
+    // Time cell is sticky
+    let html = `<div class="grid-time-cell grid-time-cell--sticky">${slot}</div>`;
     days.forEach(d => {
       const a = byDay[d]?.[slot];
       if (a) {
         const cfg = getCategoryConfig(a.category);
         html += `<div class="grid-cell">
-          <div class="grid-activity cat-${a.category || 'other'}" onclick="openActivityModal()">
+          <div class="grid-activity cat-${a.category || 'other'}"
+               onclick="openEditActivity('${a.id}')">
             <div class="grid-activity-name">${escapeHtml(a.name)}</div>
             <div class="grid-activity-source">${a.source ? escapeHtml(a.source) : cfg.label}</div>
           </div>
@@ -364,9 +492,93 @@ async function saveActivity(userId) {
 }
 
 // ============================================================
-// ACTIVITY OPTIONS (delete)
+// EDIT ACTIVITY
 // ============================================================
-window.openActivityOptions = function(activityId) {
+window.openEditActivity = function(activityId) {
+  const a = allActivities.find(x => x.id === activityId);
+  if (!a) return;
+
+  const modal = document.getElementById('activityModal');
+  const title = modal.querySelector('.activity-modal-title');
+  if (title) title.textContent = 'Edit Activity';
+
+  // Pre-fill name
+  const nameInput = modal.querySelector('input[type="text"]');
+  if (nameInput) nameInput.value = a.name;
+
+  // Pre-fill time
+  const timeInput = modal.querySelector('input[type="time"]');
+  if (timeInput && a.start_time) timeInput.value = a.start_time.slice(0,5);
+
+  // Pre-fill notes
+  const notesInputs = modal.querySelectorAll('input[type="text"]');
+  if (notesInputs[1] && a.personal_note) notesInputs[1].value = a.personal_note;
+
+  // Pre-select category
+  modal.querySelectorAll('.cat-option').forEach(btn => {
+    btn.classList.remove('selected');
+    const catText = btn.textContent.trim().toLowerCase().replace(/[^a-z]/g,'');
+    if (catText === (a.category || '').replace(/[^a-z]/g,'')) btn.classList.add('selected');
+  });
+
+  // Pre-select source
+  modal.querySelectorAll('.source-pill').forEach(btn => {
+    btn.classList.toggle('selected', btn.textContent.trim() === a.source);
+  });
+
+  // Switch save button to update mode
+  const saveBtn = modal.querySelector('.btn-primary');
+  if (saveBtn) {
+    saveBtn.textContent = 'Save Changes';
+    saveBtn.onclick = async (e) => {
+      e.preventDefault();
+      await updateActivity(activityId);
+    };
+  }
+
+  modal.classList.add('open');
+};
+
+async function updateActivity(activityId) {
+  const modal = document.getElementById('activityModal');
+  const name = modal.querySelector('input[type="text"]')?.value?.trim();
+  if (!name) { alert('Activity name is required.'); return; }
+
+  const selectedCat = modal.querySelector('.cat-option.selected');
+  const category = selectedCat?.textContent?.trim().toLowerCase().replace(/[^a-z]/g,'') || 'other';
+  const timeInput = modal.querySelector('input[type="time"]')?.value || null;
+  const notesInputs = modal.querySelectorAll('input[type="text"]');
+  const personalNote = notesInputs[1]?.value?.trim() || null;
+  const selectedSource = modal.querySelector('.source-pill.selected')?.textContent?.trim() || null;
+
+  const { error } = await supabase
+    .from('activities')
+    .update({ name, category, start_time: timeInput, personal_note: personalNote, source: selectedSource })
+    .eq('id', activityId);
+
+  if (error) { alert('Could not update activity.'); return; }
+
+  // Update in local array
+  const idx = allActivities.findIndex(a => a.id === activityId);
+  if (idx > -1) {
+    allActivities[idx] = { ...allActivities[idx], name, category, start_time: timeInput, personal_note: personalNote, source: selectedSource };
+  }
+
+  // Reset modal title and save button for next Add use
+  const title = modal.querySelector('.activity-modal-title');
+  if (title) title.textContent = 'Add Activity';
+  const saveBtn = modal.querySelector('.btn-primary');
+  if (saveBtn) {
+    saveBtn.textContent = 'Add to itinerary';
+    saveBtn.onclick = async (e) => { e.preventDefault(); await saveActivity(currentUserId); };
+  }
+
+  closeActivityModal();
+  renderCurrentDay();
+  showToast('Activity updated!');
+}
+
+window.confirmDeleteActivity = function(activityId) {
   if (!confirm('Delete this activity?')) return;
   deleteActivity(activityId);
 };
