@@ -23,17 +23,17 @@ async function requireAuth() {
 // ============================================================
 async function loadUserProfile(userId) {
   const { data: profiles, error } = await supabase
-  .from('profiles')
-  .select('full_name, avatar_url')
-  .eq('id', userId)
-  .limit(1);
+    .from('profiles')
+    .select('full_name, avatar_url')
+    .eq('id', userId)
+    .limit(1);
 
-if (error || !profiles?.length) {
-  console.warn('Could not load profile:', error?.message);
-  return;
-}
+  if (error || !profiles?.length) {
+    console.warn('Could not load profile:', error?.message);
+    return;
+  }
 
-const profile = profiles[0];
+  const profile = profiles[0];
 
   const name = profile?.full_name || 'Traveler';
   const avatarUrl = profile?.avatar_url;
@@ -120,9 +120,9 @@ function renderTrips(trips) {
 
   if (trips.length === 0) {
     container.innerHTML = `
-      <div class="trips-empty" style="grid-column: 1/-1; text-align:center; padding: 3rem 1rem;">
-        <p style="color: var(--text-muted, #888); font-size: 1rem; margin-bottom: 1rem;">No trips yet — let's plan your first adventure!</p>
-        <button class="btn-primary" onclick="openNewTripModal()">+ New Trip</button>
+      <div style="grid-column:1/-1; text-align:center; padding:3rem 1rem;">
+        <p style="color:var(--text-muted,#888); font-size:1rem; margin-bottom:1rem;">No trips yet — let's plan your first adventure!</p>
+        <button class="btn btn-primary" onclick="openNewTripModal()">+ New Trip</button>
       </div>
     `;
     return;
@@ -134,20 +134,157 @@ function renderTrips(trips) {
     const dateRange = start && end ? `${start} – ${end}` : start || 'Dates TBD';
     const statusLabel = getTripStatus(trip);
     const cover = trip.cover_image || '';
+    const hasCover = !!cover;
 
     return `
-      <a href="/trip-planner.html?id=${trip.id}" class="trip-card" style="text-decoration:none; display:block;">
-        <div class="trip-card__cover" style="background: ${cover ? `url('${cover}') center/cover` : 'linear-gradient(135deg, #E8856A22, #A89FC844)'};">
-          <span class="trip-card__status trip-card__status--${statusLabel.toLowerCase()}">${statusLabel}</span>
+      <div class="card trip-card" style="position:relative; overflow:hidden; padding:0;">
+
+        <!-- Cover photo area -->
+        <div class="trip-card-cover"
+             id="cover-${trip.id}"
+             style="
+               height: 160px;
+               background: ${hasCover
+                 ? `url('${cover}') center/cover no-repeat`
+                 : 'linear-gradient(135deg, #E8856A22, #A89FC844)'};
+               position: relative;
+               display: flex;
+               align-items: flex-end;
+               justify-content: flex-end;
+               padding: 10px;
+             ">
+
+          <!-- Status badge top-left -->
+          <span class="badge badge-${statusLabel.toLowerCase()}"
+                style="position:absolute; top:10px; left:10px;">
+            <span class="badge-dot"></span>${statusLabel}
+          </span>
+
+          <!-- Camera upload button -->
+          <label for="photo-${trip.id}"
+                 title="Add cover photo"
+                 style="
+                   width: 32px; height: 32px;
+                   background: rgba(0,0,0,0.45);
+                   border-radius: 50%;
+                   display: flex; align-items: center; justify-content: center;
+                   cursor: pointer; font-size: 0.9rem;
+                   transition: background 0.2s;
+                   flex-shrink: 0;
+                 "
+                 onmouseover="this.style.background='rgba(0,0,0,0.7)'"
+                 onmouseout="this.style.background='rgba(0,0,0,0.45)'"
+                 onclick="event.stopPropagation()">
+            📷
+          </label>
+          <input type="file"
+                 id="photo-${trip.id}"
+                 accept="image/*"
+                 style="display:none"
+                 onchange="uploadTripCover('${trip.id}', this)"
+                 onclick="event.stopPropagation()">
         </div>
-        <div class="trip-card__body">
-          <h3 class="trip-card__title">${escapeHtml(trip.name)}</h3>
-          ${trip.destination ? `<p class="trip-card__destination">📍 ${escapeHtml(trip.destination)}</p>` : ''}
-          <p class="trip-card__dates">${dateRange}</p>
-        </div>
-      </a>
+
+        <!-- Card body — clickable to open trip -->
+        <a href="trip-planner.html?id=${trip.id}"
+           class="card-body"
+           style="text-decoration:none; display:block; color:inherit; padding:16px;">
+          <div class="trip-card-badges" style="margin-bottom:8px;">
+            <span class="badge-visibility">
+              ${trip.visibility === 'public' ? '👁 Public' : '🔒 Private'}
+            </span>
+          </div>
+          <div class="trip-card-name">${escapeHtml(trip.name)}</div>
+          <div class="trip-card-meta" style="margin-top:6px;">
+            ${trip.destination
+              ? `<div class="trip-card-meta-row"><span>📍</span> ${escapeHtml(trip.destination)}</div>`
+              : ''}
+            <div class="trip-card-meta-row"><span>📅</span> ${dateRange}</div>
+          </div>
+        </a>
+
+      </div>
     `;
   }).join('');
+}
+
+// ============================================================
+// TRIP COVER PHOTO UPLOAD
+// ============================================================
+async function uploadTripCover(tripId, input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+
+  // Show loading state on camera button
+  const label = input.previousElementSibling;
+  if (label) label.textContent = '⏳';
+
+  const ext = file.name.split('.').pop();
+  const path = `${session.user.id}/${tripId}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('trip-covers')
+    .upload(path, file, { upsert: true });
+
+  if (uploadError) {
+    console.error('Upload failed:', uploadError.message);
+    if (label) label.textContent = '📷';
+    showToast('Upload failed. Please try again.', 'error');
+    return;
+  }
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('trip-covers')
+    .getPublicUrl(path);
+
+  // Save URL to trips table
+  const { error: updateError } = await supabase
+    .from('trips')
+    .update({ cover_image: publicUrl })
+    .eq('id', tripId);
+
+  if (updateError) {
+    console.error('Could not save cover URL:', updateError.message);
+    if (label) label.textContent = '📷';
+    showToast('Photo uploaded but could not save. Try again.', 'error');
+    return;
+  }
+
+  // Update the card cover immediately without reloading
+  const coverEl = document.getElementById(`cover-${tripId}`);
+  if (coverEl) {
+    coverEl.style.background = `url('${publicUrl}') center/cover no-repeat`;
+  }
+  if (label) label.textContent = '📷';
+  showToast('Cover photo updated!', 'success');
+}
+
+// ============================================================
+// TOAST NOTIFICATION
+// ============================================================
+function showToast(msg, type = 'success') {
+  const existing = document.querySelector('.tc-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'tc-toast';
+  toast.textContent = msg;
+  toast.style.cssText = `
+    position: fixed; bottom: 2rem; right: 2rem; z-index: 9999;
+    background: ${type === 'success' ? '#E8856A' : '#E24B4A'};
+    color: #fff; padding: .75rem 1.25rem; border-radius: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: .875rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    transition: opacity .3s ease;
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
 }
 
 function getTripStatus(trip) {
@@ -310,3 +447,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 window.openNewTripModal = openNewTripModal;
 window.closeNewTripModal = closeNewTripModal;
 window.signOut = signOut;
+window.uploadTripCover = uploadTripCover;
