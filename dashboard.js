@@ -183,31 +183,12 @@ function renderTrips(trips) {
           </label>
           <input type="file"
                  id="photo-${trip.id}"
-                 accept="image/jpeg,image/png,image/webp"
+                 accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
                  style="display:none"
                  onchange="uploadTripCover('${trip.id}', this)"
                  onclick="event.stopPropagation()">
 
-          <!-- Reposition button — only shown when cover exists -->
-          ${hasCover ? `
-          <button title="Drag to reposition photo"
-                  style="
-                    width: 32px; height: 32px;
-                    background: rgba(0,0,0,0.45);
-                    border: none;
-                    border-radius: 50%;
-                    display: flex; align-items: center; justify-content: center;
-                    cursor: grab; font-size: 0.9rem;
-                    margin-left: 6px;
-                    transition: background 0.2s;
-                    flex-shrink: 0;
-                  "
-                  onmouseover="this.style.background='rgba(0,0,0,0.7)'"
-                  onmouseout="this.style.background='rgba(0,0,0,0.45)'"
-                  onmousedown="startReposition(event, '${trip.id}')"
-                  onclick="event.stopPropagation()">
-            ✥
-          </button>` : ''}
+          <!-- No reposition button on card — position is set on upload via modal -->
         </div>
 
         <!-- Card body — clickable to open trip -->
@@ -236,9 +217,36 @@ function renderTrips(trips) {
 // ============================================================
 // TRIP COVER PHOTO UPLOAD
 // ============================================================
+// ── HEIC → JPEG conversion ──
+async function convertToJpeg(file) {
+  // If not HEIC/HEIF, return as-is
+  const isHeic = /heic|heif/i.test(file.name.split('.').pop()) ||
+                 file.type === 'image/heic' || file.type === 'image/heif';
+  if (!isHeic) return file;
+
+  // Draw onto canvas and export as JPEG
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(blob => {
+        if (!blob) { reject(new Error('Canvas toBlob failed')); return; }
+        resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+      }, 'image/jpeg', 0.92);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load failed')); };
+    img.src = url;
+  });
+}
+
 async function uploadTripCover(tripId, input) {
-  const file = input.files[0];
-  if (!file) return;
+  const rawFile = input.files[0];
+  if (!rawFile) return;
 
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return;
@@ -247,12 +255,21 @@ async function uploadTripCover(tripId, input) {
   const label = input.previousElementSibling;
   if (label) label.textContent = '⏳';
 
-  const ext = file.name.split('.').pop();
+  // Convert HEIC → JPEG if needed
+  let file;
+  try {
+    file = await convertToJpeg(rawFile);
+  } catch (e) {
+    console.warn('HEIC conversion failed, uploading original:', e);
+    file = rawFile;
+  }
+
+  const ext = file.name.split('.').pop().toLowerCase();
   const path = `${session.user.id}/${tripId}.${ext}`;
 
   const { error: uploadError } = await supabase.storage
     .from('trip-covers')
-    .upload(path, file, { upsert: true });
+    .upload(path, file, { upsert: true, contentType: file.type });
 
   if (uploadError) {
     console.error('Upload failed:', uploadError.message);
@@ -265,10 +282,10 @@ async function uploadTripCover(tripId, input) {
     .from('trip-covers')
     .getPublicUrl(path);
 
-  // Save URL to trips table
+  // Save URL to trips table (position will be saved when user confirms)
   const { error: updateError } = await supabase
     .from('trips')
-    .update({ cover_image: publicUrl })
+    .update({ cover_image: publicUrl, cover_image_position: '50% 50%' })
     .eq('id', tripId);
 
   if (updateError) {
@@ -278,75 +295,238 @@ async function uploadTripCover(tripId, input) {
     return;
   }
 
-  // Update the card cover immediately without reloading
-  const coverEl = document.getElementById(`cover-${tripId}`);
-  if (coverEl) {
-    coverEl.style.background = `url('${publicUrl}') center/cover no-repeat`;
-  }
   if (label) label.textContent = '📷';
-  showToast('Cover photo updated!', 'success');
+
+  // Open position modal so user can frame the shot immediately
+  openPositionModal(tripId, publicUrl);
 }
 
 // ============================================================
 // DRAG TO REPOSITION COVER PHOTO
 // ============================================================
-let repoState = null;
+// ============================================================
+// COVER PHOTO POSITION MODAL
+// ============================================================
+let posModalState = null;
 
-function startReposition(e, tripId) {
-  e.preventDefault();
-  e.stopPropagation();
-
-  const coverEl = document.getElementById(`cover-${tripId}`);
-  if (!coverEl) return;
-
-  // Parse current background-position (default 50% 50%)
-  const style = window.getComputedStyle(coverEl);
-  const pos = coverEl.dataset.bgPos || '50% 50%';
-  let [xPct, yPct] = pos.split(' ').map(p => parseFloat(p));
-
-  repoState = { tripId, coverEl, startX: e.clientX, startY: e.clientY, xPct, yPct };
-
-  coverEl.style.cursor = 'grabbing';
-  document.addEventListener('mousemove', onRepoMove);
-  document.addEventListener('mouseup', onRepoEnd);
-}
-
-function onRepoMove(e) {
-  if (!repoState) return;
-  const { coverEl, startX, startY } = repoState;
-
-  const dx = e.clientX - startX;
-  const dy = e.clientY - startY;
-
-  // Each pixel of drag = ~0.3% position shift (tune as needed)
-  let newX = Math.max(0, Math.min(100, repoState.xPct - dx * 0.3));
-  let newY = Math.max(0, Math.min(100, repoState.yPct - dy * 0.3));
-
-  coverEl.style.backgroundPosition = `${newX}% ${newY}%`;
-  coverEl.dataset.bgPos = `${newX}% ${newY}%`;
-}
-
-async function onRepoEnd(e) {
-  if (!repoState) return;
-
-  const { tripId, coverEl } = repoState;
-  coverEl.style.cursor = 'default';
-  document.removeEventListener('mousemove', onRepoMove);
-  document.removeEventListener('mouseup', onRepoEnd);
-
-  const pos = coverEl.dataset.bgPos || '50% 50%';
-
-  // Save position to DB
-  const { error } = await supabase
-    .from('trips')
-    .update({ cover_image_position: pos })
-    .eq('id', tripId);
-
-  if (!error) {
-    showToast('Position saved!', 'success');
+function openPositionModal(tripId, imageUrl) {
+  // Update the card cover optimistically
+  const cardCover = document.getElementById(`cover-${tripId}`);
+  if (cardCover) {
+    cardCover.style.background = `url('${imageUrl}') 50% 50% / cover no-repeat`;
+    cardCover.dataset.bgPos = '50% 50%';
   }
 
-  repoState = null;
+  // Build or reuse modal
+  let modal = document.getElementById('positionModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'positionModal';
+    modal.innerHTML = `
+      <div id="positionModalInner">
+        <div id="positionModalHeader">
+          <span id="positionModalTitle">Frame your cover photo</span>
+          <span id="positionModalHint">Drag to reposition</span>
+        </div>
+        <div id="positionPreview">
+          <img id="positionImg" draggable="false" alt="Cover photo preview">
+          <div id="positionCrosshair"></div>
+        </div>
+        <div id="positionModalFooter">
+          <button id="positionCancelBtn" class="btn btn-ghost">Cancel</button>
+          <button id="positionSaveBtn" class="btn btn-primary">Save position</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    // Inject styles once
+    const style = document.createElement('style');
+    style.textContent = `
+      #positionModal {
+        position: fixed; inset: 0; z-index: 500;
+        background: rgba(44,32,56,0.6); backdrop-filter: blur(6px);
+        display: flex; align-items: center; justify-content: center;
+        padding: 20px;
+        animation: fadeIn 0.2s ease;
+      }
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      #positionModalInner {
+        background: var(--surface, #fff);
+        border-radius: 16px;
+        width: 100%; max-width: 520px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        overflow: hidden;
+      }
+      #positionModalHeader {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 16px 20px 12px;
+        border-bottom: 1px solid var(--border, #eee);
+      }
+      #positionModalTitle {
+        font-family: var(--font-display, serif);
+        font-size: 1.1rem; font-weight: 600;
+        color: var(--text, #2C2038);
+      }
+      #positionModalHint {
+        font-size: 0.72rem; color: var(--text-muted, #888);
+      }
+      #positionPreview {
+        position: relative; height: 260px; overflow: hidden;
+        background: #f0f0f0; cursor: grab; user-select: none;
+      }
+      #positionPreview.dragging { cursor: grabbing; }
+      #positionImg {
+        position: absolute; width: 100%; height: 100%;
+        object-fit: cover; pointer-events: none;
+      }
+      #positionCrosshair {
+        position: absolute; inset: 0; pointer-events: none;
+        background:
+          linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px);
+        background-size: 33.33% 33.33%;
+      }
+      #positionModalFooter {
+        display: flex; gap: 10px; justify-content: flex-end;
+        padding: 14px 20px;
+        border-top: 1px solid var(--border, #eee);
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // Reset state
+  const img = document.getElementById('positionImg');
+  const preview = document.getElementById('positionPreview');
+  img.src = imageUrl;
+
+  // x/y are object-position percentages (0–100)
+  posModalState = { tripId, imageUrl, x: 50, y: 50, dragging: false, lastX: 0, lastY: 0 };
+  applyPositionToModal();
+
+  // Wire up drag
+  preview.onmousedown = (e) => {
+    e.preventDefault();
+    posModalState.dragging = true;
+    posModalState.lastX = e.clientX;
+    posModalState.lastY = e.clientY;
+    preview.classList.add('dragging');
+  };
+  window.onmousemove = (e) => {
+    if (!posModalState?.dragging) return;
+    const dx = e.clientX - posModalState.lastX;
+    const dy = e.clientY - posModalState.lastY;
+    posModalState.lastX = e.clientX;
+    posModalState.lastY = e.clientY;
+    // Dragging right moves focal point left (and vice versa)
+    posModalState.x = Math.max(0, Math.min(100, posModalState.x - dx * 0.25));
+    posModalState.y = Math.max(0, Math.min(100, posModalState.y - dy * 0.25));
+    applyPositionToModal();
+  };
+  window.onmouseup = () => {
+    if (posModalState) {
+      posModalState.dragging = false;
+      preview.classList.remove('dragging');
+    }
+  };
+
+  // Touch support
+  preview.ontouchstart = (e) => {
+    posModalState.dragging = true;
+    posModalState.lastX = e.touches[0].clientX;
+    posModalState.lastY = e.touches[0].clientY;
+  };
+  preview.ontouchmove = (e) => {
+    e.preventDefault();
+    if (!posModalState?.dragging) return;
+    const dx = e.touches[0].clientX - posModalState.lastX;
+    const dy = e.touches[0].clientY - posModalState.lastY;
+    posModalState.lastX = e.touches[0].clientX;
+    posModalState.lastY = e.touches[0].clientY;
+    posModalState.x = Math.max(0, Math.min(100, posModalState.x - dx * 0.25));
+    posModalState.y = Math.max(0, Math.min(100, posModalState.y - dy * 0.25));
+    applyPositionToModal();
+  };
+  preview.ontouchend = () => { if (posModalState) posModalState.dragging = false; };
+
+  // Buttons
+  document.getElementById('positionSaveBtn').onclick = savePosition;
+  document.getElementById('positionCancelBtn').onclick = cancelPosition;
+
+  modal.style.display = 'flex';
+}
+
+function applyPositionToModal() {
+  const img = document.getElementById('positionImg');
+  if (img && posModalState) {
+    img.style.objectPosition = `${posModalState.x}% ${posModalState.y}%`;
+  }
+}
+
+async function savePosition() {
+  if (!posModalState) return;
+  const { tripId, imageUrl, x, y } = posModalState;
+  const pos = `${x.toFixed(1)}% ${y.toFixed(1)}%`;
+
+  const saveBtn = document.getElementById('positionSaveBtn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+
+  try {
+    const { error } = await supabase
+      .from('trips')
+      .update({ cover_image_position: pos })
+      .eq('id', tripId);
+
+    if (error) {
+      console.error('savePosition DB error:', error);
+      showToast('Could not save position: ' + error.message, 'error');
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save position'; }
+      return;
+    }
+  } catch (e) {
+    console.error('savePosition exception:', e);
+    showToast('Could not save position. Try again.', 'error');
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save position'; }
+    return;
+  }
+
+  // Update the card cover with the confirmed position
+  const cardCover = document.getElementById(`cover-${tripId}`);
+  if (cardCover) {
+    cardCover.style.background = `url('${imageUrl}') ${pos} / cover no-repeat`;
+    cardCover.dataset.bgPos = pos;
+  }
+
+  closePositionModal();
+  showToast('Cover photo saved!', 'success');
+}
+
+function cancelPosition() {
+  if (!posModalState) return;
+  const { tripId } = posModalState;
+  // If this was a brand-new upload and user cancels, leave the photo but keep centered
+  const cardCover = document.getElementById(`cover-${tripId}`);
+  if (cardCover && posModalState.imageUrl) {
+    cardCover.style.background = `url('${posModalState.imageUrl}') 50% 50% / cover no-repeat`;
+  }
+  closePositionModal();
+}
+
+function closePositionModal() {
+  const modal = document.getElementById('positionModal');
+  if (modal) modal.style.display = 'none';
+  window.onmousemove = null;
+  window.onmouseup = null;
+  posModalState = null;
+}
+
+// Keep old startReposition as alias so existing reposition buttons still work
+function startReposition(e, tripId) {
+  e.preventDefault(); e.stopPropagation();
+  const coverEl = document.getElementById(`cover-${tripId}`);
+  const bgUrl = coverEl?.style.backgroundImage?.match(/url\(['"]?([^'"]+)['"]?\)/)?.[1];
+  if (bgUrl) openPositionModal(tripId, bgUrl);
 }
 function showToast(msg, type = 'success') {
   const existing = document.querySelector('.tc-toast');
@@ -532,3 +712,4 @@ window.closeNewTripModal = closeNewTripModal;
 window.signOut = signOut;
 window.uploadTripCover = uploadTripCover;
 window.startReposition = startReposition;
+window.openPositionModal = openPositionModal;

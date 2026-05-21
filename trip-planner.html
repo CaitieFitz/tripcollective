@@ -365,24 +365,22 @@
 
     .grid-header-row {
       display: grid;
-      grid-template-columns: 56px repeat(var(--day-count, 5), minmax(140px, 1fr));
+      grid-template-columns: 56px repeat(var(--day-count, 5), 140px);
       border-bottom: 1px solid var(--border);
       background: var(--surface);
       position: sticky;
       top: 0;
       z-index: 10;
       min-width: max-content;
-      width: 100%;
     }
 
     /* Hotel row */
     .grid-hotel-row {
       display: grid;
-      grid-template-columns: 56px repeat(var(--day-count, 5), minmax(140px, 1fr));
+      grid-template-columns: 56px repeat(var(--day-count, 5), 140px);
       background: rgba(168,159,200,0.08);
       border-bottom: 1px solid var(--border);
       min-width: max-content;
-      width: 100%;
       position: sticky;
       top: 0;
       z-index: 9;
@@ -472,11 +470,10 @@
 
     .grid-row {
       display: grid;
-      grid-template-columns: 56px repeat(var(--day-count, 5), minmax(140px, 1fr));
+      grid-template-columns: 56px repeat(var(--day-count, 5), 140px);
       border-bottom: 1px solid rgba(232,223,240,0.5);
       min-height: 52px;
       min-width: max-content;
-      width: 100%;
     }
 
     .grid-row:hover { background: rgba(240,234,247,0.3); }
@@ -1276,7 +1273,19 @@
   }
 
   function closeActivityModal() {
-    document.getElementById('activityModal').classList.remove('open');
+    const modal = document.getElementById('activityModal');
+    modal.classList.remove('open');
+    // Remove the edit-only day row so it never shows up on fresh Add
+    const dayRow = modal.querySelector('.edit-day-row');
+    if (dayRow) dayRow.remove();
+    // Reset title and save button back to Add mode
+    const title = modal.querySelector('.activity-modal-title');
+    if (title) title.textContent = 'Add Activity';
+    const saveBtn = modal.querySelector('.btn-primary');
+    if (saveBtn && saveBtn.textContent !== 'Add to itinerary') {
+      saveBtn.textContent = 'Add to itinerary';
+      saveBtn.onclick = null; // trip-planner.js re-wires this via wireAddActivityForm
+    }
   }
 
   function closeOnOverlay(e) {

@@ -526,6 +526,28 @@ window.openEditActivity = function(activityId) {
     btn.classList.toggle('selected', btn.textContent.trim() === a.source);
   });
 
+  // Inject day-change selector (once; reuse on subsequent edits)
+  let dayRow = modal.querySelector('.edit-day-row');
+  if (!dayRow) {
+    dayRow = document.createElement('div');
+    dayRow.className = 'form-group edit-day-row';
+    dayRow.innerHTML = '<label class="form-label">Move to day</label><select class="form-input edit-day-select"></select>';
+    // Insert after the time/duration row
+    const timeGrid = modal.querySelector('[style*="grid-template-columns"]');
+    if (timeGrid) timeGrid.after(dayRow);
+    else modal.querySelector('.form-group').after(dayRow);
+  }
+  const daySelect = dayRow.querySelector('.edit-day-select');
+  const knownDays = [...new Set(allActivities.map(x => x.day_number))]
+    .filter(d => d !== undefined)
+    .sort((x, y) => x - y);
+  daySelect.innerHTML = knownDays.map(d => {
+    const acts = allActivities.filter(x => x.day_number === d);
+    const dateStr = acts[0]?.activity_date ? formatDayLabel(acts[0].activity_date) : '';
+    const label = dateStr ? `Day ${d} — ${dateStr}` : `Day ${d}`;
+    return `<option value="${d}" ${d === a.day_number ? 'selected' : ''}>${label}</option>`;
+  }).join('');
+
   // Switch save button to update mode
   const saveBtn = modal.querySelector('.btn-primary');
   if (saveBtn) {
@@ -551,9 +573,21 @@ async function updateActivity(activityId) {
   const personalNote = notesInputs[1]?.value?.trim() || null;
   const selectedSource = modal.querySelector('.source-pill.selected')?.textContent?.trim() || null;
 
+  // Read day selector — may be present when editing (not when adding)
+  const daySelect = modal.querySelector('.edit-day-select');
+  const newDayNumber = daySelect ? parseInt(daySelect.value, 10) : null;
+  const newActivityDate = newDayNumber ? getDateForDay(newDayNumber) : null;
+
+  // Build update payload — only include day fields if a day was selected
+  const updatePayload = { name, category, start_time: timeInput, personal_note: personalNote, source: selectedSource };
+  if (newDayNumber !== null) {
+    updatePayload.day_number = newDayNumber;
+    updatePayload.activity_date = newActivityDate;
+  }
+
   const { error } = await supabase
     .from('activities')
-    .update({ name, category, start_time: timeInput, personal_note: personalNote, source: selectedSource })
+    .update(updatePayload)
     .eq('id', activityId);
 
   if (error) { alert('Could not update activity.'); return; }
@@ -561,10 +595,15 @@ async function updateActivity(activityId) {
   // Update in local array
   const idx = allActivities.findIndex(a => a.id === activityId);
   if (idx > -1) {
-    allActivities[idx] = { ...allActivities[idx], name, category, start_time: timeInput, personal_note: personalNote, source: selectedSource };
+    allActivities[idx] = { ...allActivities[idx], ...updatePayload };
   }
 
-  // Reset modal title and save button for next Add use
+  // Re-sort local array after potential day change
+  allActivities.sort((a, b) => a.day_number - b.day_number || (a.start_time || '').localeCompare(b.start_time || ''));
+
+  // Reset modal — remove day row so it doesn't appear on next Add
+  const dayRow = modal.querySelector('.edit-day-row');
+  if (dayRow) dayRow.remove();
   const title = modal.querySelector('.activity-modal-title');
   if (title) title.textContent = 'Add Activity';
   const saveBtn = modal.querySelector('.btn-primary');
@@ -572,6 +611,9 @@ async function updateActivity(activityId) {
     saveBtn.textContent = 'Add to itinerary';
     saveBtn.onclick = async (e) => { e.preventDefault(); await saveActivity(currentUserId); };
   }
+
+  // If day changed, rebuild day nav in case it affects which days exist
+  if (newDayNumber !== null) buildDayNav();
 
   closeActivityModal();
   renderCurrentDay();
