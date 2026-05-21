@@ -760,6 +760,12 @@ window.onSectionSwitch = function(name) {
 };
 
 // ── RESERVATIONS ──
+const TYPE_LABELS = { flight: 'Flights', hotel: 'Hotels & Accommodation', car: 'Car Rentals', tour: 'Tours & Experiences', other: 'Other' };
+const TYPE_ICONS  = { flight: '✈️', hotel: '🏨', car: '🚗', tour: '🎟', other: '📋' };
+const TYPE_ORDER  = ['flight', 'hotel', 'car', 'tour', 'other'];
+
+let allReservations = [];
+
 async function renderReservations() {
   const el = document.getElementById('reservations-content');
   if (!el) return;
@@ -775,28 +781,39 @@ async function renderReservations() {
     return;
   }
 
-  const reservations = data || [];
-  if (reservations.length === 0) {
-    el.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text-muted)">No reservations yet.</div>`;
+  allReservations = data || [];
+  renderReservationsList();
+}
+
+function renderReservationsList() {
+  const el = document.getElementById('reservations-content');
+  if (!el) return;
+
+  // Add button header
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+    <button class="btn btn-primary btn-sm" onclick="openResModal()">+ Add reservation</button>
+  </div>`;
+
+  if (allReservations.length === 0) {
+    html += `<div style="text-align:center;padding:3rem 1rem;color:var(--text-muted)">
+      No reservations yet — add your first one above.
+    </div>`;
+    el.innerHTML = html;
     return;
   }
 
   // Group by type
-  const typeOrder = ['flight', 'hotel', 'car', 'tour', 'other'];
-  const typeLabels = { flight: 'Flights', hotel: 'Hotels & Accommodation', car: 'Car Rentals', tour: 'Tours & Experiences', other: 'Other' };
-  const typeIcons  = { flight: '✈️', hotel: '🏨', car: '🚗', tour: '🎟', other: '📋' };
   const grouped = {};
-  reservations.forEach(r => {
+  allReservations.forEach(r => {
     const t = r.type || 'other';
     if (!grouped[t]) grouped[t] = [];
     grouped[t].push(r);
   });
 
-  let html = '';
-  typeOrder.forEach(type => {
+  TYPE_ORDER.forEach(type => {
     if (!grouped[type]) return;
     html += `<div class="sp-section">
-      <div class="sp-section-title">${typeLabels[type] || type}</div>`;
+      <div class="sp-section-title">${TYPE_LABELS[type] || type}</div>`;
     grouped[type].forEach(r => {
       const start = r.start_datetime ? new Date(r.start_datetime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
       const end   = r.end_datetime   ? new Date(r.end_datetime).toLocaleDateString('en-US',   { month: 'short', day: 'numeric', year: 'numeric' }) : '';
@@ -804,14 +821,19 @@ async function renderReservations() {
       const dateDetail = start && end && start !== end
         ? `${start} – ${end}`
         : start + (startTime ? ` · ${startTime}` : '');
-      html += `<div class="res-card">
-        <div class="res-icon res-icon-${type}">${typeIcons[type] || '📋'}</div>
+      html += `<div class="res-card" style="position:relative">
+        <div class="res-icon res-icon-${type}">${TYPE_ICONS[type] || '📋'}</div>
         <div style="flex:1;min-width:0">
           <div class="res-name">${escapeHtml(r.name || '')}</div>
           <div class="res-detail">${dateDetail}${r.location ? ` · 📍 ${escapeHtml(r.location)}` : ''}</div>
-          ${r.notes ? `<div class="res-detail" style="margin-top:2px">${escapeHtml(r.notes)}</div>` : ''}
+          ${r.notes ? `<div class="res-detail" style="margin-top:4px;white-space:pre-line">${escapeHtml(r.notes)}</div>` : ''}
         </div>
-        ${r.confirmation_number ? `<span class="res-conf">${escapeHtml(r.confirmation_number)}</span>` : ''}
+        <div style="display:flex;gap:4px;flex-shrink:0;align-self:flex-start">
+          <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem"
+                  onclick="openEditReservation('${r.id}')" title="Edit">✏️</button>
+          <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem"
+                  onclick="confirmDeleteReservation('${r.id}')" title="Delete">🗑</button>
+        </div>
       </div>`;
     });
     html += `</div>`;
@@ -819,6 +841,109 @@ async function renderReservations() {
 
   el.innerHTML = html;
 }
+
+window.openEditReservation = function(id) {
+  const r = allReservations.find(x => x.id === id);
+  if (!r) return;
+
+  // Pre-fill type
+  document.querySelectorAll('.res-type-btn').forEach(b => b.classList.remove('selected'));
+  const typeBtn = document.querySelector(`.res-type-btn[data-type="${r.type || 'other'}"]`);
+  if (typeBtn) { typeBtn.classList.add('selected'); selectResType(typeBtn); }
+
+  // Pre-fill fields
+  document.getElementById('resName').value = r.name || '';
+  document.getElementById('resLocation').value = r.location || '';
+  document.getElementById('resNotes').value = r.notes || '';
+
+  // Dates — stored as datetime, split for date/time inputs
+  if (r.start_datetime) {
+    const d = new Date(r.start_datetime);
+    document.getElementById('resStartDate').value = d.toISOString().split('T')[0];
+    document.getElementById('resStartTime').value = d.toTimeString().slice(0,5);
+  } else {
+    document.getElementById('resStartDate').value = '';
+    document.getElementById('resStartTime').value = '';
+  }
+  if (r.end_datetime) {
+    const d = new Date(r.end_datetime);
+    document.getElementById('resEndDate').value = d.toISOString().split('T')[0];
+    document.getElementById('resEndTime').value = d.toTimeString().slice(0,5);
+  } else {
+    document.getElementById('resEndDate').value = '';
+    document.getElementById('resEndTime').value = '';
+  }
+
+  openResModal(id);
+};
+
+window.confirmDeleteReservation = function(id) {
+  if (!confirm('Delete this reservation?')) return;
+  deleteReservation(id);
+};
+
+async function deleteReservation(id) {
+  const { error } = await supabase.from('reservations').delete().eq('id', id);
+  if (error) { showToast('Could not delete reservation.'); return; }
+  allReservations = allReservations.filter(r => r.id !== id);
+  renderReservationsList();
+  showToast('Reservation deleted.');
+}
+
+window.saveReservation = async function() {
+  const modal = document.getElementById('resModal');
+  const editId = modal.dataset.editId || null;
+
+  const name = document.getElementById('resName').value.trim();
+  if (!name) { alert('Please enter a name for this reservation.'); return; }
+
+  const type = document.querySelector('.res-type-btn.selected')?.dataset?.type || 'other';
+  const location = document.getElementById('resLocation').value.trim() || null;
+  const notes = document.getElementById('resNotes').value.trim() || null;
+
+  // Combine date + time into ISO datetime strings
+  const startDate = document.getElementById('resStartDate').value;
+  const startTime = document.getElementById('resStartTime').value || '00:00';
+  const endDate   = document.getElementById('resEndDate').value;
+  const endTime   = document.getElementById('resEndTime').value || '00:00';
+
+  const start_datetime = startDate ? new Date(`${startDate}T${startTime}`).toISOString() : null;
+  const end_datetime   = endDate   ? new Date(`${endDate}T${endTime}`).toISOString()     : null;
+
+  const payload = { trip_id: TRIP_ID, type, name, location, notes, start_datetime, end_datetime };
+
+  const saveBtn = document.getElementById('resSaveBtn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+
+  let error;
+  if (editId) {
+    const res = await supabase.from('reservations').update(payload).eq('id', editId);
+    error = res.error;
+    if (!error) {
+      const idx = allReservations.findIndex(r => r.id === editId);
+      if (idx > -1) allReservations[idx] = { ...allReservations[idx], ...payload };
+    }
+  } else {
+    const res = await supabase.from('reservations').insert(payload).select().single();
+    error = res.error;
+    if (!error && res.data) allReservations.push(res.data);
+  }
+
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = editId ? 'Save changes' : 'Add reservation'; }
+
+  if (error) {
+    console.error('Reservation save error:', error);
+    showToast('Could not save reservation: ' + error.message);
+    return;
+  }
+
+  // Re-sort by start_datetime
+  allReservations.sort((a, b) => (a.start_datetime || '').localeCompare(b.start_datetime || ''));
+
+  closeResModal();
+  renderReservationsList();
+  showToast(editId ? 'Reservation updated!' : 'Reservation added!');
+};
 
 // ── TRAVELLERS ──
 async function renderTravellers() {

@@ -1128,6 +1128,62 @@
       text-align: center; padding: 40px 20px;
       font-size: 0.82rem; color: var(--text-muted);
     }
+
+    /* ── RESERVATION MODAL ── */
+    .res-modal-overlay {
+      position: fixed; inset: 0; z-index: 400;
+      background: rgba(44,32,56,0.45);
+      backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .res-modal-overlay.open { display: flex; }
+    .res-modal {
+      background: var(--surface);
+      border-radius: 20px;
+      width: 100%; max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(44,32,56,0.2);
+    }
+    .res-modal-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .res-modal-title {
+      font-family: var(--font-display);
+      font-size: 1.2rem; font-weight: 600;
+    }
+    .res-type-picker {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px; margin-bottom: 4px;
+    }
+    .res-type-btn {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 4px;
+      padding: 10px 4px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: none; cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 0.68rem; color: var(--text-muted);
+      transition: all 0.15s;
+    }
+    .res-type-btn:hover { border-color: var(--primary); color: var(--text); }
+    .res-type-btn .res-type-icon { font-size: 1.2rem; }
+    .res-type-btn.selected { border-color: var(--accent); background: rgba(168,159,200,0.12); color: var(--text); }
+    .res-type-btn[data-type="flight"].selected  { border-color: #E8856A; background: #FCEDE6; color: #B04A22; }
+    .res-type-btn[data-type="hotel"].selected   { border-color: #A89FC8; background: #F0EFF8; color: #5C548E; }
+    .res-type-btn[data-type="car"].selected     { border-color: #2BA176; background: #E4F5EE; color: #1A6B50; }
+    .res-type-btn[data-type="tour"].selected    { border-color: #EBA8B8; background: #FCEEF3; color: #A04060; }
+    .res-type-btn[data-type="other"].selected   { border-color: #8FA3D4; background: #EEF2FA; color: #3A5EA0; }
+    .res-notes-hints {
+      font-size: 0.68rem; color: var(--text-muted);
+      margin-top: 4px; line-height: 1.5;
+    }
   </style>
 </head>
 <body>
@@ -1464,6 +1520,88 @@
   </div>
 </div>
 
+
+<!-- ── RESERVATION MODAL ── -->
+<div class="res-modal-overlay" id="resModal" onclick="closeResModalOnOverlay(event)">
+  <div class="res-modal">
+    <div class="res-modal-header">
+      <h2 class="res-modal-title" id="resModalTitle">Add Reservation</h2>
+      <button class="btn btn-icon" onclick="closeResModal()">✕</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Type</label>
+      <div class="res-type-picker">
+        <button class="res-type-btn" data-type="flight" onclick="selectResType(this)">
+          <span class="res-type-icon">✈️</span>Flight
+        </button>
+        <button class="res-type-btn selected" data-type="hotel" onclick="selectResType(this)">
+          <span class="res-type-icon">🏨</span>Hotel
+        </button>
+        <button class="res-type-btn" data-type="car" onclick="selectResType(this)">
+          <span class="res-type-icon">🚗</span>Car
+        </button>
+        <button class="res-type-btn" data-type="tour" onclick="selectResType(this)">
+          <span class="res-type-icon">🎟</span>Tour
+        </button>
+        <button class="res-type-btn" data-type="other" onclick="selectResType(this)">
+          <span class="res-type-icon">📋</span>Other
+        </button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Name *</label>
+      <input class="form-input" type="text" id="resName"
+             placeholder="e.g. QT Sydney, Qantas QF12, Hertz RAV4">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label class="form-label" id="resStartLabel">Check-in / Start</label>
+        <input class="form-input" type="date" id="resStartDate">
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="resEndLabel">Check-out / End</label>
+        <input class="form-input" type="date" id="resEndDate">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="resTimeRow">
+      <div class="form-group">
+        <label class="form-label">Start time</label>
+        <input class="form-input" type="time" id="resStartTime">
+      </div>
+      <div class="form-group">
+        <label class="form-label">End time</label>
+        <input class="form-input" type="time" id="resEndTime">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Address / Location</label>
+      <input class="form-input" type="text" id="resLocation"
+             placeholder="e.g. 49 Market St, Sydney CBD">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Notes</label>
+      <textarea class="form-input" id="resNotes" rows="4"
+                style="resize:vertical"
+                placeholder="Confirmation #, check-in time, cancellation policy, seat numbers, room type, pickup instructions…"></textarea>
+      <div class="res-notes-hints" id="resNotesHints">
+        Suggestions: confirmation number · check-in/out times · cancellation policy
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="flex" style="gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeResModal()">Cancel</button>
+      <button class="btn btn-primary" id="resSaveBtn" onclick="saveReservation()">Add reservation</button>
+    </div>
+  </div>
+</div>
+
 <script>
   // ── VIEW SWITCHING ──
   let currentView = null;
@@ -1593,6 +1731,53 @@
   // ── CATEGORY MANAGER ──
   function openCategoryManager() {
     alert('Category manager coming soon! You\'ll be able to add, rename, and recolor categories here.');
+  }
+
+  // ── RESERVATION MODAL (inline helpers) ──
+  const RES_TYPE_CONFIG = {
+    flight: { startLabel: 'Departure date', endLabel: 'Arrival date',    hints: 'Confirmation # · seat numbers · flight times · baggage allowance · terminal info' },
+    hotel:  { startLabel: 'Check-in date',  endLabel: 'Check-out date',  hints: 'Confirmation # · check-in/out times · room type · breakfast included · cancellation policy' },
+    car:    { startLabel: 'Pickup date',    endLabel: 'Drop-off date',   hints: 'Booking # · pickup location · insurance details · fuel policy · driver requirements' },
+    tour:   { startLabel: 'Tour date',      endLabel: 'End date',        hints: 'Booking # · meeting point · what is included · cancellation policy · dress code' },
+    other:  { startLabel: 'Start date',     endLabel: 'End date',        hints: 'Confirmation # · any relevant details, times, or instructions' }
+  };
+
+  function selectResType(btn) {
+    document.querySelectorAll('.res-type-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    const cfg = RES_TYPE_CONFIG[btn.dataset.type] || RES_TYPE_CONFIG.other;
+    document.getElementById('resStartLabel').textContent = cfg.startLabel;
+    document.getElementById('resEndLabel').textContent = cfg.endLabel;
+    document.getElementById('resNotesHints').textContent = 'Suggestions: ' + cfg.hints;
+  }
+
+  function openResModal(reservationId) {
+    const modal = document.getElementById('resModal');
+    document.getElementById('resModalTitle').textContent = reservationId ? 'Edit Reservation' : 'Add Reservation';
+    document.getElementById('resSaveBtn').textContent = reservationId ? 'Save changes' : 'Add reservation';
+    modal.dataset.editId = reservationId || '';
+    if (!reservationId) {
+      document.getElementById('resName').value = '';
+      document.getElementById('resStartDate').value = '';
+      document.getElementById('resEndDate').value = '';
+      document.getElementById('resStartTime').value = '';
+      document.getElementById('resEndTime').value = '';
+      document.getElementById('resLocation').value = '';
+      document.getElementById('resNotes').value = '';
+      document.querySelectorAll('.res-type-btn').forEach(b => b.classList.remove('selected'));
+      const hotelBtn = document.querySelector('.res-type-btn[data-type="hotel"]');
+      hotelBtn.classList.add('selected');
+      selectResType(hotelBtn);
+    }
+    modal.classList.add('open');
+  }
+  window.openResModal = openResModal;
+
+  function closeResModal() { document.getElementById('resModal').classList.remove('open'); }
+  window.closeResModal = closeResModal;
+
+  function closeResModalOnOverlay(e) {
+    if (e.target === document.getElementById('resModal')) closeResModal();
   }
 
   // ── SECTION TAB SWITCHING ──
