@@ -50,10 +50,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.toggleMap = function() {
     const panel = document.getElementById('mapPanel');
     const btn = document.querySelector('.map-toggle-btn');
+    const reopenBtn = document.getElementById('map-reopen-btn');
     if (!panel) return;
     const isCollapsed = panel.classList.contains('collapsed');
     panel.classList.toggle('collapsed', !isCollapsed);
     if (btn) btn.textContent = isCollapsed ? 'Hide map' : 'Show map';
+    // Only show reopen btn when on itinerary tab and map is now collapsed
+    const onItinerary = document.querySelector('.section-tab.active')?.dataset?.section === 'itinerary';
+    if (reopenBtn) reopenBtn.style.display = (onItinerary && !isCollapsed) ? 'block' : 'none';
   };
 
   // Single initial render — after this, setView handles subsequent switches
@@ -704,6 +708,346 @@ function capitalize(str) {
 
 function escapeHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+
+// ============================================================
+// SECTION TABS — Reservations / Travellers / Notes / Trip Intel
+// ============================================================
+
+let reservationsLoaded = false;
+let travellersLoaded = false;
+let notesLoaded = false;
+let intelLoaded = false;
+
+window.onSectionSwitch = function(name) {
+  const isItinerary = name === 'itinerary';
+
+  // Show/hide the day nav, category legend, budget bar
+  const chrome = document.getElementById('itinerary-chrome');
+  if (chrome) chrome.classList.toggle('hidden', !isItinerary);
+
+  // Show/hide the view toggle and + Add Activity button (only useful on itinerary)
+  const viewToggle = document.querySelector('.view-toggle');
+  const addBtn = document.querySelector('.trip-header-right .btn-primary');
+  if (viewToggle) viewToggle.style.display = isItinerary ? '' : 'none';
+  if (addBtn) addBtn.style.display = isItinerary ? '' : 'none';
+
+  // Map reopen button — only show on itinerary when map is collapsed
+  const mapReopenBtn = document.getElementById('map-reopen-btn');
+  const mapPanel = document.getElementById('mapPanel');
+  if (mapReopenBtn) {
+    const mapCollapsed = mapPanel?.classList.contains('collapsed');
+    mapReopenBtn.style.display = (isItinerary && mapCollapsed) ? 'block' : 'none';
+  }
+
+  if (name === 'reservations' && !reservationsLoaded) {
+    reservationsLoaded = true;
+    renderReservations();
+  }
+  if (name === 'travellers' && !travellersLoaded) {
+    travellersLoaded = true;
+    renderTravellers();
+  }
+  if (name === 'notes' && !notesLoaded) {
+    notesLoaded = true;
+    renderNotes();
+  }
+  if (name === 'intel' && !intelLoaded) {
+    intelLoaded = true;
+    renderTripIntel();
+  }
+};
+
+// ── RESERVATIONS ──
+async function renderReservations() {
+  const el = document.getElementById('reservations-content');
+  if (!el) return;
+
+  const { data, error } = await supabase
+    .from('reservations')
+    .select('*')
+    .eq('trip_id', TRIP_ID)
+    .order('start_datetime', { ascending: true });
+
+  if (error) {
+    el.innerHTML = `<div style="padding:2rem;color:var(--text-muted)">Could not load reservations.</div>`;
+    return;
+  }
+
+  const reservations = data || [];
+  if (reservations.length === 0) {
+    el.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text-muted)">No reservations yet.</div>`;
+    return;
+  }
+
+  // Group by type
+  const typeOrder = ['flight', 'hotel', 'car', 'tour', 'other'];
+  const typeLabels = { flight: 'Flights', hotel: 'Hotels & Accommodation', car: 'Car Rentals', tour: 'Tours & Experiences', other: 'Other' };
+  const typeIcons  = { flight: '✈️', hotel: '🏨', car: '🚗', tour: '🎟', other: '📋' };
+  const grouped = {};
+  reservations.forEach(r => {
+    const t = r.type || 'other';
+    if (!grouped[t]) grouped[t] = [];
+    grouped[t].push(r);
+  });
+
+  let html = '';
+  typeOrder.forEach(type => {
+    if (!grouped[type]) return;
+    html += `<div class="sp-section">
+      <div class="sp-section-title">${typeLabels[type] || type}</div>`;
+    grouped[type].forEach(r => {
+      const start = r.start_datetime ? new Date(r.start_datetime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+      const end   = r.end_datetime   ? new Date(r.end_datetime).toLocaleDateString('en-US',   { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+      const startTime = r.start_datetime ? new Date(r.start_datetime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+      const dateDetail = start && end && start !== end
+        ? `${start} – ${end}`
+        : start + (startTime ? ` · ${startTime}` : '');
+      html += `<div class="res-card">
+        <div class="res-icon res-icon-${type}">${typeIcons[type] || '📋'}</div>
+        <div style="flex:1;min-width:0">
+          <div class="res-name">${escapeHtml(r.name || '')}</div>
+          <div class="res-detail">${dateDetail}${r.location ? ` · 📍 ${escapeHtml(r.location)}` : ''}</div>
+          ${r.notes ? `<div class="res-detail" style="margin-top:2px">${escapeHtml(r.notes)}</div>` : ''}
+        </div>
+        ${r.confirmation_number ? `<span class="res-conf">${escapeHtml(r.confirmation_number)}</span>` : ''}
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+// ── TRAVELLERS ──
+async function renderTravellers() {
+  const el = document.getElementById('travellers-content');
+  if (!el) return;
+
+  // Load collaborators for this trip
+  const { data: collabs, error } = await supabase
+    .from('trip_collaborators')
+    .select('user_id, role, profiles(full_name, avatar_url)')
+    .eq('trip_id', TRIP_ID);
+
+  if (error && error.code !== 'PGRST116') {
+    el.innerHTML = `<div style="padding:2rem;color:var(--text-muted)">Could not load travellers.</div>`;
+    return;
+  }
+
+  // Always include the trip owner
+  const owner = {
+    name: 'You (Trip Owner)',
+    role: 'owner',
+    avatar_url: null,
+  };
+
+  const travellers = [owner, ...(collabs || []).map(c => ({
+    name: c.profiles?.full_name || 'Traveller',
+    role: c.role || 'collaborator',
+    avatar_url: c.profiles?.avatar_url || null,
+  }))];
+
+  const roleLabels = { owner: 'Trip owner', editor: 'Can edit', viewer: 'View only', collaborator: 'Collaborator' };
+
+  let html = `<div class="sp-section">
+    <div class="sp-section-title">Trip members</div>`;
+  travellers.forEach(t => {
+    const initials = t.name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+    html += `<div class="trav-card">
+      <div class="trav-header">
+        <div class="trav-avatar">${t.avatar_url
+          ? `<img src="${t.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+          : initials}</div>
+        <div>
+          <div class="trav-name">${escapeHtml(t.name)}</div>
+          <div class="trav-role">${roleLabels[t.role] || t.role}</div>
+        </div>
+      </div>
+    </div>`;
+  });
+  html += `</div>
+  <div style="padding:12px 0;color:var(--text-muted);font-size:0.78rem;text-align:center">
+    Full traveller profiles (flights, dietary, rooms) coming soon.
+  </div>`;
+
+  el.innerHTML = html;
+}
+
+// ── NOTES & VOTES ──
+async function renderNotes() {
+  const el = document.getElementById('notes-content');
+  if (!el) return;
+
+  const { data: voteData, error } = await supabase
+    .from('votes')
+    .select('*')
+    .eq('trip_id', TRIP_ID)
+    .order('created_at', { ascending: true });
+
+  // Group votes by topic/activity
+  const topics = {};
+  (voteData || []).forEach(v => {
+    const key = v.topic || v.activity_id || 'general';
+    if (!topics[key]) topics[key] = { label: v.topic || 'Vote', options: [] };
+    // Each vote row is one person's vote — tally by option
+    const opt = v.option_text || v.option || '';
+    if (opt) {
+      let existing = topics[key].options.find(o => o.text === opt);
+      if (!existing) { existing = { text: opt, up: 0, down: 0 }; topics[key].options.push(existing); }
+      if (v.value > 0) existing.up++;
+      if (v.value < 0) existing.down++;
+    }
+  });
+
+  let html = '';
+
+  if (Object.keys(topics).length > 0) {
+    html += `<div class="sp-section"><div class="sp-section-title">Votes</div>`;
+    Object.values(topics).forEach(t => {
+      html += `<div class="vote-card">
+        <div class="vote-card-title">${escapeHtml(t.label)}</div>
+        <div class="vote-options">`;
+      t.options.forEach(o => {
+        html += `<div class="vote-option">
+          <span class="vote-option-text">${escapeHtml(o.text)}</span>
+          <div class="vote-btns">
+            <button class="vote-btn">👍</button>
+            <span class="vote-count">${o.up}</span>
+            <button class="vote-btn">👎</button>
+            <span class="vote-count">${o.down}</span>
+          </div>
+        </div>`;
+      });
+      html += `</div></div>`;
+    });
+    html += `</div>`;
+  }
+
+  html += `<div class="sp-section">
+    <div class="sp-section-title">Group notes</div>
+    <textarea class="notes-textarea" placeholder="Add shared notes, reminders, or ideas for the group…" id="tripNotesArea"></textarea>
+    <div style="display:flex;justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-primary btn-sm" onclick="saveNotes()">Save notes</button>
+    </div>
+  </div>`;
+
+  el.innerHTML = html;
+
+  // Load existing trip notes
+  if (tripData?.notes) {
+    const area = document.getElementById('tripNotesArea');
+    if (area) area.value = tripData.notes;
+  }
+}
+
+window.saveNotes = async function() {
+  const area = document.getElementById('tripNotesArea');
+  if (!area) return;
+  const notes = area.value;
+  const { error } = await supabase.from('trips').update({ notes }).eq('id', TRIP_ID);
+  if (!error) {
+    if (tripData) tripData.notes = notes;
+    showToast('Notes saved!');
+  } else {
+    showToast('Could not save notes.');
+  }
+};
+
+// ── TRIP INTEL (Claude API) ──
+async function renderTripIntel() {
+  const el = document.getElementById('intel-panel');
+  if (!el) return;
+
+  const destination = tripData?.destination || 'your destination';
+
+  el.innerHTML = `<div class="intel-loading">
+    <div class="intel-spinner"></div>
+    <div class="intel-spinner-label">Asking Claude about ${escapeHtml(destination)}…</div>
+  </div>`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `You are a travel intelligence assistant. For a trip to ${destination}, provide travel intel as a JSON object ONLY — no markdown, no preamble, just the raw JSON:
+{
+  "esim": [{"name":"string","detail":"string"}],
+  "transit": ["string"],
+  "rideshare": ["string"],
+  "tipping": "string",
+  "delicacies": ["string"],
+  "phrases": [{"en":"string","local":"string"}]
+}
+esim: 2-3 eSIM provider recommendations with price/data. transit: 3-4 practical tips. rideshare: 2 tips. tipping: 1 concise sentence. delicacies: 5-6 must-try local foods. phrases: 6 useful local phrases (English meaning first). Keep all strings under 20 words.`
+        }]
+      })
+    });
+
+    const data = await res.json();
+    const raw = data.content?.find(b => b.type === 'text')?.text || '';
+    const clean = raw.replace(/\`\`\`json|\`\`\`/g, '').trim();
+    const intel = JSON.parse(clean);
+    renderIntelContent(el, destination, intel);
+  } catch(e) {
+    console.error('Trip Intel error:', e);
+    el.innerHTML = `<div class="intel-error">
+      <div style="font-size:1.5rem;margin-bottom:8px">⚠️</div>
+      Could not load Trip Intel.<br>
+      <button class="intel-refresh-btn" style="margin-top:12px" onclick="intelLoaded=false;renderTripIntel()">Try again</button>
+    </div>`;
+  }
+}
+
+function renderIntelContent(el, destination, d) {
+  el.innerHTML = `
+    <div class="intel-dest-header">
+      <div class="intel-dest-name">${escapeHtml(destination)}</div>
+      <button class="intel-refresh-btn" onclick="intelLoaded=false;renderTripIntel()">↻ Refresh</button>
+    </div>
+
+    ${d.esim?.length ? `
+    <div class="intel-section">
+      <div class="intel-section-title">📱 eSIM options</div>
+      ${d.esim.map(e => `<div class="intel-esim"><div class="intel-esim-name">${escapeHtml(e.name)}</div><div class="intel-esim-detail">${escapeHtml(e.detail)}</div></div>`).join('')}
+    </div>` : ''}
+
+    ${d.transit?.length ? `
+    <div class="intel-section">
+      <div class="intel-section-title">🚇 Transit tips</div>
+      ${d.transit.map(t => `<div class="intel-row"><span>${escapeHtml(t)}</span></div>`).join('')}
+    </div>` : ''}
+
+    ${d.rideshare?.length ? `
+    <div class="intel-section">
+      <div class="intel-section-title">🚗 Rideshare</div>
+      ${d.rideshare.map(t => `<div class="intel-row"><span>${escapeHtml(t)}</span></div>`).join('')}
+    </div>` : ''}
+
+    ${d.tipping ? `
+    <div class="intel-section">
+      <div class="intel-section-title">💵 Tipping culture</div>
+      <div class="intel-row"><span>${escapeHtml(d.tipping)}</span></div>
+    </div>` : ''}
+
+    ${d.delicacies?.length ? `
+    <div class="intel-section">
+      <div class="intel-section-title">🍽 Local delicacies</div>
+      <div class="intel-chips">${d.delicacies.map(x => `<span class="intel-chip">${escapeHtml(x)}</span>`).join('')}</div>
+    </div>` : ''}
+
+    ${d.phrases?.length ? `
+    <div class="intel-section">
+      <div class="intel-section-title">💬 Key phrases</div>
+      ${d.phrases.map(p => `<div class="intel-phrase"><span class="intel-phrase-en">${escapeHtml(p.en)}</span><span class="intel-phrase-local">${escapeHtml(p.local)}</span></div>`).join('')}
+    </div>` : ''}
+  `;
 }
 
 function showToast(msg) {

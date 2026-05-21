@@ -227,6 +227,7 @@
       overflow-y: auto;
       overflow-x: hidden;
       min-width: 0;
+      position: relative;
     }
 
     /* ── RIGHT: MAP PANEL ── */
@@ -905,6 +906,228 @@
       width: 42%;
     }
 
+
+    /* ── ITINERARY-ONLY CHROME ── */
+    #itinerary-chrome { display: block; }
+    #itinerary-chrome.hidden { display: none; }
+
+    /* ── SECTION TABS (Itinerary / Reservations / Travellers / Notes / Intel) ── */
+    .section-tab-bar {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 0 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      flex-shrink: 0;
+      scrollbar-width: none;
+    }
+    .section-tab-bar::-webkit-scrollbar { display: none; }
+
+    .section-tab {
+      padding: 6px 14px;
+      border: 0.5px solid transparent;
+      border-radius: 20px;
+      background: none;
+      font-family: var(--font-body);
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+      margin: 8px 3px;
+    }
+    .section-tab:hover { color: var(--text); border-color: var(--border); }
+
+    .section-tab[data-section="itinerary"].active   { background: #FCEDE6; border-color: #E8856A; color: #B04A22; }
+    .section-tab[data-section="reservations"].active { background: #F0EFF8; border-color: #A89FC8; color: #5C548E; }
+    .section-tab[data-section="travellers"].active   { background: #FCEEF3; border-color: #EBA8B8; color: #A04060; }
+    .section-tab[data-section="notes"].active        { background: #EEF2FA; border-color: #8FA3D4; color: #3A5EA0; }
+    .section-tab[data-section="intel"].active        { background: #E4F5EE; border-color: #2BA176; color: #1A6B50; }
+
+    /* ── SECTION PANELS ── */
+    .section-panel { display: none; flex: 1; overflow: hidden; }
+    .section-panel.active { display: flex; flex: 1; overflow: hidden; }
+
+    /* Reservations, Travellers, Notes — scrollable content panels */
+    .section-panel-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 28px;
+    }
+
+    /* Section panel inner layout */
+    .sp-section { margin-bottom: 28px; }
+    .sp-section-title {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    /* Reservation cards */
+    .res-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md, 12px);
+      margin-bottom: 8px;
+    }
+    .res-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .res-icon-hotel      { background: rgba(143,163,212,0.2); }
+    .res-icon-flight     { background: rgba(232,133,106,0.2); }
+    .res-icon-car        { background: rgba(43,161,118,0.2);  }
+    .res-icon-tour       { background: rgba(168,159,200,0.2); }
+    .res-icon-other      { background: rgba(44,32,56,0.08);   }
+    .res-name { font-size: 0.85rem; font-weight: 500; }
+    .res-detail { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+    .res-conf {
+      margin-left: auto;
+      font-size: 0.68rem;
+      font-family: monospace;
+      background: var(--muted);
+      padding: 3px 7px;
+      border-radius: 6px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    /* Traveller cards */
+    .trav-card {
+      padding: 14px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md, 12px);
+      margin-bottom: 8px;
+    }
+    .trav-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .trav-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--muted); display: flex;
+      align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 600;
+      color: var(--text-muted); flex-shrink: 0;
+    }
+    .trav-name { font-size: 0.88rem; font-weight: 500; }
+    .trav-role { font-size: 0.7rem; color: var(--text-muted); }
+    .trav-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .trav-field-label { font-size: 0.65rem; color: var(--text-muted); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .trav-field-val { font-size: 0.78rem; font-weight: 500; }
+
+    /* Notes & Votes */
+    .vote-card {
+      padding: 14px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md, 12px);
+      margin-bottom: 8px;
+    }
+    .vote-card-title { font-size: 0.85rem; font-weight: 500; margin-bottom: 10px; }
+    .vote-option { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; padding: 4px 0; }
+    .vote-option-text { flex: 1; }
+    .vote-btns { display: flex; align-items: center; gap: 4px; }
+    .vote-btn { border: none; background: none; cursor: pointer; font-size: 0.9rem; padding: 2px 4px; border-radius: 4px; }
+    .vote-btn:hover { background: var(--muted); }
+    .vote-count { font-size: 0.72rem; color: var(--text-muted); min-width: 16px; text-align: center; }
+    .notes-textarea {
+      width: 100%; border: 1px solid var(--border);
+      border-radius: var(--radius-md, 12px);
+      padding: 12px 14px;
+      font-size: 0.82rem;
+      font-family: var(--font-body);
+      background: var(--surface);
+      color: var(--text);
+      resize: vertical;
+      min-height: 100px;
+      margin-top: 10px;
+    }
+    .notes-textarea:focus { outline: none; border-color: var(--primary); }
+
+    /* Trip Intel */
+    #intel-panel {
+      flex: 1; overflow-y: auto; padding: 24px 28px;
+    }
+    .intel-loading {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 60px 20px; gap: 14px;
+    }
+    .intel-spinner {
+      width: 30px; height: 30px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .intel-spinner-label { font-size: 0.82rem; color: var(--text-muted); }
+    .intel-dest-header {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+    }
+    .intel-dest-name {
+      font-family: var(--font-display);
+      font-size: 1.3rem; font-weight: 600;
+    }
+    .intel-refresh-btn {
+      margin-left: auto;
+      background: none; border: 1px solid var(--border);
+      border-radius: 20px; padding: 5px 12px;
+      font-size: 0.72rem; color: var(--text-muted);
+      cursor: pointer; font-family: var(--font-body);
+    }
+    .intel-refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .intel-section { margin-bottom: 20px; }
+    .intel-section-title {
+      font-size: 0.7rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text-muted); margin-bottom: 8px;
+    }
+    .intel-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .intel-chip {
+      font-size: 0.78rem; padding: 4px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .intel-row {
+      display: flex; gap: 10px; font-size: 0.78rem;
+      padding: 8px 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; margin-bottom: 6px;
+    }
+    .intel-row-label { color: var(--text-muted); min-width: 100px; flex-shrink: 0; }
+    .intel-phrase {
+      display: flex; gap: 10px; font-size: 0.78rem;
+      padding: 7px 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; margin-bottom: 6px;
+    }
+    .intel-phrase-en { color: var(--text-muted); min-width: 120px; flex-shrink: 0; }
+    .intel-phrase-local { font-weight: 500; }
+    .intel-esim {
+      padding: 10px 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; margin-bottom: 6px;
+    }
+    .intel-esim-name { font-size: 0.82rem; font-weight: 500; }
+    .intel-esim-detail { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+    .intel-error {
+      text-align: center; padding: 40px 20px;
+      font-size: 0.82rem; color: var(--text-muted);
+    }
   </style>
 </head>
 <body>
@@ -962,6 +1185,18 @@
     </div>
   </div>
 
+  <!-- ── SECTION TAB BAR ── -->
+  <div class="section-tab-bar" id="sectionTabBar">
+    <button class="section-tab active" data-section="itinerary" onclick="switchSection('itinerary', this)">Itinerary</button>
+    <button class="section-tab" data-section="reservations" onclick="switchSection('reservations', this)">Reservations</button>
+    <button class="section-tab" data-section="travellers" onclick="switchSection('travellers', this)">Travellers</button>
+    <button class="section-tab" data-section="notes" onclick="switchSection('notes', this)">Notes &amp; Votes</button>
+    <button class="section-tab" data-section="intel" onclick="switchSection('intel', this)">Trip Intel ✦</button>
+  </div>
+
+  <!-- ── ITINERARY-ONLY CHROME (hidden on other tabs) ── -->
+  <div id="itinerary-chrome">
+
   <!-- ── BUDGET BAR ── */
   <div class="budget-bar">
     <div class="budget-item">
@@ -1003,6 +1238,13 @@
     <span style="padding:14px 28px;color:var(--text-muted);font-size:0.8rem;">Loading days…</span>
   </div>
 
+  </div><!-- /itinerary-chrome -->
+
+  <!-- ── SECTION PANELS WRAPPER ── -->
+  <div style="display:flex;flex:1;overflow:hidden;flex-direction:column;">
+
+  <!-- ITINERARY SECTION (existing content) -->
+  <div class="section-panel active" id="section-itinerary">
   <!-- ── MAIN AREA ── -->
   <div class="planner-main">
 
@@ -1044,6 +1286,19 @@
         <div style="padding:2rem;color:var(--text-muted);text-align:center">Loading itinerary…</div>
       </div>
 
+      <!-- Map reopen button — visible only when map is collapsed -->
+      <button id="map-reopen-btn"
+              onclick="toggleMap()"
+              title="Show map"
+              style="display:none;position:absolute;right:0;top:50%;transform:translateY(-50%);
+                     writing-mode:vertical-rl;text-orientation:mixed;
+                     padding:14px 6px;background:var(--surface);border:1px solid var(--border);
+                     border-right:none;border-radius:8px 0 0 8px;
+                     font-size:0.72rem;font-weight:500;color:var(--text-muted);
+                     cursor:pointer;font-family:var(--font-body);letter-spacing:0.04em;
+                     transition:color 0.2s,background 0.2s;z-index:5;">
+        📍 Map
+      </button>
     </div>
 
 
@@ -1087,6 +1342,40 @@
     </div>
 
   </div>
+  </div><!-- /section-itinerary -->
+
+  <!-- RESERVATIONS SECTION -->
+  <div class="section-panel" id="section-reservations">
+    <div class="section-panel-scroll" id="reservations-content">
+      <div style="padding:2rem;color:var(--text-muted);text-align:center">Loading reservations…</div>
+    </div>
+  </div>
+
+  <!-- TRAVELLERS SECTION -->
+  <div class="section-panel" id="section-travellers">
+    <div class="section-panel-scroll" id="travellers-content">
+      <div style="padding:2rem;color:var(--text-muted);text-align:center">Loading travellers…</div>
+    </div>
+  </div>
+
+  <!-- NOTES & VOTES SECTION -->
+  <div class="section-panel" id="section-notes">
+    <div class="section-panel-scroll" id="notes-content">
+      <div style="padding:2rem;color:var(--text-muted);text-align:center">Loading notes…</div>
+    </div>
+  </div>
+
+  <!-- TRIP INTEL SECTION -->
+  <div class="section-panel" id="section-intel">
+    <div id="intel-panel">
+      <div class="intel-loading">
+        <div class="intel-spinner"></div>
+        <div class="intel-spinner-label">Loading Trip Intel…</div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /section panels wrapper -->
 </div>
 
 <!-- ── ADD ACTIVITY MODAL ── -->
@@ -1305,6 +1594,16 @@
   function openCategoryManager() {
     alert('Category manager coming soon! You\'ll be able to add, rename, and recolor categories here.');
   }
+
+  // ── SECTION TAB SWITCHING ──
+  function switchSection(name, btn) {
+    document.querySelectorAll('.section-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('section-' + name).classList.add('active');
+    if (window.onSectionSwitch) window.onSectionSwitch(name);
+  }
+  window.switchSection = switchSection;
 </script>
 <script type="module" src="trip-planner.js"></script>
 
