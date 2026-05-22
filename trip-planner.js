@@ -41,6 +41,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   let initialRenderDone = false;
   window.setView = function(view) {
     originalSetView(view);
+    // Day nav only relevant in card/list view
+    const dayNav = document.getElementById('dayNav');
+    if (dayNav) dayNav.style.display = view === 'grid' ? 'none' : '';
     if (!dataReady || !initialRenderDone) return;
     if (view === 'card') renderCurrentDay();
     if (view === 'grid') window.buildGrid();
@@ -312,12 +315,7 @@ window.buildGrid = async function() {
     return;
   }
 
-  // Set CSS variable on scroll wrapper
   const gridView = document.getElementById('grid-view');
-  const scrollWrap = gridView?.querySelector('.grid-scroll-wrap');
-  const target = scrollWrap || gridView;
-  if (target) target.style.setProperty('--day-count', days.length);
-
   const colTemplate = `56px repeat(${days.length}, 140px)`;
 
   // Load reservations for hotel row
@@ -364,13 +362,16 @@ window.buildGrid = async function() {
       }).join('');
   }
 
-  // Hotel row — just below header
+  // Hotel row — sits at top of scrollable body (scrolls with content)
   let hotelRowEl = document.getElementById('grid-hotel-row');
   if (!hotelRowEl) {
     hotelRowEl = document.createElement('div');
     hotelRowEl.id = 'grid-hotel-row';
     hotelRowEl.className = 'grid-hotel-row';
-    gridHeaderRow?.after(hotelRowEl);
+    body.prepend(hotelRowEl);
+  } else {
+    // Make sure it's at the top of body (not inside header wrap)
+    body.prepend(hotelRowEl);
   }
   if (hotels.length > 0) {
     let hotelHtml = `<div class="grid-hotel-label">🏨</div>`;
@@ -409,7 +410,23 @@ window.buildGrid = async function() {
     if (slot) byDay[a.day_number][slot] = a;
   });
 
+  // Sync horizontal scroll between header wrap and body scroll wrap
+  const headerWrap = document.getElementById('gridHeaderWrap');
+  const scrollWrap = document.getElementById('gridScrollWrap');
+  if (headerWrap && scrollWrap) {
+    // Remove old listeners before adding new ones
+    const newScrollWrap = scrollWrap.cloneNode(false);
+    while (scrollWrap.firstChild) newScrollWrap.appendChild(scrollWrap.firstChild);
+    scrollWrap.parentNode.replaceChild(newScrollWrap, scrollWrap);
+    newScrollWrap.addEventListener('scroll', () => {
+      headerWrap.scrollLeft = newScrollWrap.scrollLeft;
+    });
+  }
+
   body.innerHTML = '';
+  // Re-add hotel row after clearing body
+  body.prepend(hotelRowEl);
+
   TIME_SLOTS.forEach(slot => {
     const row = document.createElement('div');
     row.className = 'grid-row';
@@ -1396,85 +1413,522 @@ async function deleteTraveller(id) {
 }
 
 // ── NOTES & VOTES ──
+// currentUserId already declared at top of module
+let allVotes = [];       // raw rows from votes table
+let voteTopics = {};     // grouped: { topicKey: { label, options: [{text, up, down, myVote}] } }
+
+let allTripNotes = [];
+
 async function renderNotes() {
   const el = document.getElementById('notes-content');
   if (!el) return;
 
-  const { data: voteData, error } = await supabase
-    .from('votes')
-    .select('*')
-    .eq('trip_id', TRIP_ID)
-    .order('created_at', { ascending: true });
+  // Get current user
+  const { data: { session } } = await supabase.auth.getSession();
+  currentUserId = session?.user?.id || null;
 
-  // Group votes by topic/activity
-  const topics = {};
-  (voteData || []).forEach(v => {
-    const key = v.topic || v.activity_id || 'general';
-    if (!topics[key]) topics[key] = { label: v.topic || 'Vote', options: [] };
-    // Each vote row is one person's vote — tally by option
-    const opt = v.option_text || v.option || '';
-    if (opt) {
-      let existing = topics[key].options.find(o => o.text === opt);
-      if (!existing) { existing = { text: opt, up: 0, down: 0 }; topics[key].options.push(existing); }
-      if (v.value > 0) existing.up++;
-      if (v.value < 0) existing.down++;
-    }
-  });
+  // Load votes + trip notes in parallel
+  const [{ data: voteData }, { data: notesData }] = await Promise.all([
+    supabase.from('votes').select('*').eq('trip_id', TRIP_ID).order('created_at', { ascending: true }),
+    supabase.from('trip_notes').select('*').eq('trip_id', TRIP_ID).order('created_at', { ascending: true }),
+  ]);
 
-  let html = '';
+  allVotes = voteData || [];
+  const rawNotes = notesData || [];
 
-  if (Object.keys(topics).length > 0) {
-    html += `<div class="sp-section"><div class="sp-section-title">Votes</div>`;
-    Object.values(topics).forEach(t => {
-      html += `<div class="vote-card">
-        <div class="vote-card-title">${escapeHtml(t.label)}</div>
-        <div class="vote-options">`;
-      t.options.forEach(o => {
-        html += `<div class="vote-option">
-          <span class="vote-option-text">${escapeHtml(o.text)}</span>
-          <div class="vote-btns">
-            <button class="vote-btn">👍</button>
-            <span class="vote-count">${o.up}</span>
-            <button class="vote-btn">👎</button>
-            <span class="vote-count">${o.down}</span>
-          </div>
-        </div>`;
-      });
-      html += `</div></div>`;
-    });
-    html += `</div>`;
+  // Fetch profiles for note authors separately (no direct FK from trip_notes to profiles)
+  const authorIds = [...new Set(rawNotes.map(n => n.user_id).filter(Boolean))];
+  let profileMap = {};
+  if (authorIds.length > 0) {
+    const { data: profileRows } = await supabase
+      .from('profiles')
+      .select('id, full_name, avatar_url')
+      .in('id', authorIds);
+    (profileRows || []).forEach(p => { profileMap[p.id] = p; });
   }
+  allTripNotes = rawNotes.map(n => ({
+    ...n,
+    profiles: profileMap[n.user_id] || null,
+  }));
 
-  html += `<div class="sp-section">
-    <div class="sp-section-title">Group notes</div>
-    <textarea class="notes-textarea" placeholder="Add shared notes, reminders, or ideas for the group…" id="tripNotesArea"></textarea>
-    <div style="display:flex;justify-content:flex-end;margin-top:8px">
-      <button class="btn btn-primary btn-sm" onclick="saveNotes()">Save notes</button>
+  buildVoteTopics();
+  renderNotesList();
+}
+
+function buildVoteTopics() {
+  voteTopics = {};
+  allVotes.forEach(v => {
+    const key = v.topic || 'general';
+    if (!voteTopics[key]) voteTopics[key] = { label: v.topic || 'General', options: [], closed: false };
+    const opt = v.option_text || '';
+    if (!opt) return;
+    // __closed__ is a sentinel row marking the vote as closed
+    if (opt === '__closed__') { voteTopics[key].closed = (v.value === 1); return; }
+    let existing = voteTopics[key].options.find(o => o.text === opt);
+    if (!existing) {
+      existing = { text: opt, up: 0, down: 0, myVote: null };
+      voteTopics[key].options.push(existing);
+    }
+    // value=0 rows are definition rows — don't count as votes
+    if (v.value > 0) existing.up++;
+    if (v.value < 0) existing.down++;
+    if (v.user_id === currentUserId && v.value !== 0) existing.myVote = v.value;
+  });
+}
+
+function renderNotesList() {
+  const el = document.getElementById('notes-content');
+  if (!el) return;
+
+  const topicKeys = Object.keys(voteTopics);
+
+  // Build note cards HTML
+  // Filter: show own notes always, show others' notes only if not private
+  const visibleNotes = allTripNotes.filter(n =>
+    n.user_id === currentUserId || !n.is_private
+  );
+
+  const noteCardsHtml = visibleNotes.map(n => {
+    const name = n.profiles?.full_name || 'Traveller';
+    const initials = name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+    const avatarUrl = n.profiles?.avatar_url;
+    const isOwn = n.user_id === currentUserId;
+    const timeAgo = formatTimeAgo(n.created_at);
+    const isPrivate = n.is_private;
+    return `<div class="note-card ${isPrivate ? 'note-card-private' : ''}" data-note-id="${n.id}">
+      <div class="note-card-header">
+        <div class="note-card-title">${escapeHtml(n.title || 'Note')}</div>
+        <div class="note-card-actions">
+          ${isOwn ? `
+            <button class="btn btn-icon" style="width:22px;height:22px;font-size:0.65rem"
+                    onclick="editNote('${n.id}')" title="Edit">✏️</button>
+            <button class="btn btn-icon" style="width:22px;height:22px;font-size:0.65rem"
+                    onclick="deleteNote('${n.id}')" title="Delete">🗑</button>
+          ` : ''}
+          ${isOwn ? `
+            <button class="note-privacy-dot ${isPrivate ? 'private' : 'shared'}"
+                    onclick="toggleNotePrivacy('${n.id}', ${isPrivate})"
+                    title="${isPrivate ? 'Private — click to share with group' : 'Shared — click to make private'}">
+              <span class="privacy-dot-circle"></span>
+              <span class="privacy-dot-label">${isPrivate ? 'Private' : 'Shared'}</span>
+            </button>
+          ` : ''}
+          <div class="note-author-avatar" title="${escapeHtml(name)} · ${timeAgo}">
+            ${avatarUrl
+              ? `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+              : initials}
+          </div>
+        </div>
+      </div>
+      <div class="note-card-body">${escapeHtml(n.body || '')}</div>
+    </div>`;
+  }).join('');
+
+  let html = `
+  <div class="notes-layout">
+
+    <!-- ── LEFT: Group Notes ── -->
+    <div class="notes-col">
+      <div class="notes-col-header" style="display:flex;align-items:center;justify-content:space-between">
+        <div class="sp-section-title" style="margin:0">Group Notes</div>
+        <button class="btn btn-primary btn-sm" onclick="openNoteModal()">+ Add note</button>
+      </div>
+      ${allTripNotes.length === 0
+        ? `<div class="notes-empty">No notes yet — add a packing list, reminders, or anything the group needs to know.</div>`
+        : noteCardsHtml}
     </div>
+
+    <!-- ── RIGHT: Votes ── -->
+    <div class="notes-col">
+      <div class="notes-col-header" style="display:flex;align-items:center;justify-content:space-between">
+        <div class="sp-section-title" style="margin:0">Votes</div>
+        <button class="btn btn-primary btn-sm" onclick="openVoteModal()">+ New vote</button>
+      </div>
+
+      ${topicKeys.length === 0
+        ? `<div class="notes-empty">No votes yet — propose something for the group to decide on!</div>`
+        : topicKeys.map(key => {
+            const t = voteTopics[key];
+            const totalVoters = [...new Set(allVotes.filter(v => v.topic === key).map(v => v.user_id))].length;
+            const isClosed = t.closed;
+            // Find ALL tied winners when closed
+            let winners = [];
+            if (isClosed && t.options.length > 0) {
+              const topScore = Math.max(...t.options.map(o => o.up - o.down));
+              winners = t.options.filter(o => o.up - o.down === topScore && o.up > 0);
+            }
+            return `<div class="vote-card ${isClosed ? 'vote-card-closed' : ''}" data-topic="${escapeHtml(key)}">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
+                <div>
+                  <div class="vote-card-title">${escapeHtml(t.label)}</div>
+                  ${isClosed ? `<div style="font-size:0.68rem;color:#2BA176;margin-top:2px">✓ Closed · ${totalVoters} vote${totalVoters!==1?'s':''} cast</div>` : ''}
+                </div>
+                <div style="display:flex;gap:4px;flex-shrink:0">
+                  <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.68rem"
+                          onclick="${isClosed ? `reopenVote('${escapeHtml(key)}')` : `closeVote('${escapeHtml(key)}')`}"
+                          title="${isClosed ? 'Reopen vote' : 'Close vote'}">
+                    ${isClosed ? '🔓' : '🔒'}
+                  </button>
+                  <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.65rem"
+                          onclick="confirmDeleteTopic('${escapeHtml(key)}')" title="Delete vote">🗑</button>
+                </div>
+              </div>
+              ${winners.length > 0 ? `<div class="vote-winner">🏆 ${winners.map(w => `${escapeHtml(w.text)} <span style="color:var(--text-muted);font-weight:400">(${w.up} 👍 · ${w.down} 👎)</span>`).join(' &nbsp;·&nbsp; ')}</div>` : ''}
+              ${isClosed ? '' : t.options.map(o => {
+                const total = o.up + o.down;
+                const pct = total > 0 ? Math.round((o.up / total) * 100) : 0;
+                const myUp   = o.myVote === 1;
+                const myDown = o.myVote === -1;
+                return `<div class="vote-option-row">
+                  <div class="vote-option-label">${escapeHtml(o.text)}</div>
+                  <div class="vote-bar-wrap">
+                    <div class="vote-bar" style="width:${pct}%"></div>
+                  </div>
+                  <div class="vote-tally">
+                    <button class="vote-btn ${myUp ? 'voted-up' : ''}"
+                            onclick="castVote('${escapeHtml(key)}','${escapeHtml(o.text)}',1)">👍</button>
+                    <span class="vote-count">${o.up}</span>
+                    <button class="vote-btn ${myDown ? 'voted-down' : ''}"
+                            onclick="castVote('${escapeHtml(key)}','${escapeHtml(o.text)}',-1)">👎</button>
+                    <span class="vote-count">${o.down}</span>
+                  </div>
+                </div>`;
+              }).join('')}
+              ${!isClosed ? `<div style="font-size:0.68rem;color:var(--text-muted);margin-top:8px">${totalVoters} vote${totalVoters !== 1 ? 's' : ''} cast</div>` : ''}
+            </div>`;
+          }).join('')
+      }
+    </div>
+
   </div>`;
 
   el.innerHTML = html;
 
-  // Load existing trip notes
+  // Restore notes
   if (tripData?.notes) {
     const area = document.getElementById('tripNotesArea');
     if (area) area.value = tripData.notes;
   }
 }
 
-window.saveNotes = async function() {
-  const area = document.getElementById('tripNotesArea');
-  if (!area) return;
-  const notes = area.value;
-  const { error } = await supabase.from('trips').update({ notes }).eq('id', TRIP_ID);
-  if (!error) {
-    if (tripData) tripData.notes = notes;
-    showToast('Notes saved!');
+// ── CAST VOTE ──
+window.castVote = async function(topic, optionText, value) {
+  if (!currentUserId) { showToast('Sign in to vote.'); return; }
+  if (voteTopics[topic]?.closed) { showToast('This vote is closed.'); return; }
+
+  // Toggle off if same vote already cast
+  const existing = allVotes.find(v =>
+    v.topic === topic && v.option_text === optionText && 
+    v.user_id === currentUserId && v.value !== 0
+  );
+
+  if (existing) {
+    if (existing.value === value) {
+      // Remove vote (toggle off)
+      await supabase.from('votes').delete().eq('id', existing.id);
+      allVotes = allVotes.filter(v => v.id !== existing.id);
+    } else {
+      // Switch vote
+      await supabase.from('votes').update({ value }).eq('id', existing.id);
+      existing.value = value;
+    }
   } else {
-    showToast('Could not save notes.');
+    const { data: newVote, error } = await supabase.from('votes').insert({
+      trip_id: TRIP_ID,
+      user_id: currentUserId,
+      topic,
+      option_text: optionText,
+      value,
+    }).select().single();
+    if (!error && newVote) allVotes.push(newVote);
   }
+
+  buildVoteTopics();
+  // Re-render just the vote card for this topic (avoid full re-render which resets textarea)
+  renderNotesList();
 };
 
+// ── DELETE VOTE TOPIC ──
+window.confirmDeleteTopic = function(topic) {
+  if (!confirm(`Delete the "${topic}" vote? All votes will be removed.`)) return;
+  deleteTopic(topic);
+};
+
+async function deleteTopic(topic) {
+  await supabase.from('votes').delete().eq('trip_id', TRIP_ID).eq('topic', topic);
+  allVotes = allVotes.filter(v => v.topic !== topic);
+  buildVoteTopics();
+  renderNotesList();
+  showToast('Vote deleted.');
+}
+
+// ── CLOSE / REOPEN VOTE ──
+window.closeVote = async function(topic) {
+  const t = voteTopics[topic];
+  if (!t) return;
+
+  // Check if all travellers have voted (count unique non-zero voters)
+  const voters = [...new Set(
+    allVotes.filter(v => v.topic === topic && v.value !== 0 && v.option_text !== '__closed__')
+             .map(v => v.user_id)
+  )];
+  const totalTravellers = allTravellers.length || 1;
+  const missing = totalTravellers - voters.length;
+
+  if (missing > 0) {
+    const proceed = confirm(
+      `${missing} traveller${missing !== 1 ? 's have' : ' has'} not voted yet. Close the vote anyway?`
+    );
+    if (!proceed) return;
+  }
+
+  // Upsert a __closed__ sentinel row
+  const existing = allVotes.find(v => v.topic === topic && v.option_text === '__closed__');
+  if (existing) {
+    await supabase.from('votes').update({ value: 1 }).eq('id', existing.id);
+    existing.value = 1;
+  } else {
+    const { data: row, error } = await supabase.from('votes').insert({
+      trip_id: TRIP_ID,
+      user_id: currentUserId,
+      topic,
+      option_text: '__closed__',
+      value: 1,
+    }).select().single();
+    if (error) { showToast('Could not close vote: ' + error.message); return; }
+    if (row) allVotes.push(row);
+  }
+
+  buildVoteTopics();
+  renderNotesList();
+  showToast('Vote closed!');
+};
+
+window.reopenVote = async function(topic) {
+  const existing = allVotes.find(v => v.topic === topic && v.option_text === '__closed__');
+  if (existing) {
+    await supabase.from('votes').update({ value: 0 }).eq('id', existing.id);
+    existing.value = 0;
+  }
+  buildVoteTopics();
+  renderNotesList();
+  showToast('Vote reopened.');
+};
+
+// ── NEW VOTE MODAL ──
+window.openVoteModal = function() {
+  let modal = document.getElementById('voteModalOverlay');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'voteModalOverlay';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(44,32,56,0.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px';
+    modal.innerHTML = `
+      <div style="background:var(--surface);border-radius:20px;width:100%;max-width:460px;padding:24px;box-shadow:0 20px 60px rgba(44,32,56,0.2);max-height:90vh;overflow-y:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <h2 style="font-family:var(--font-display);font-size:1.2rem;font-weight:600">New Vote</h2>
+          <button class="btn btn-icon" onclick="closeVoteModal()">✕</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Question *</label>
+          <input class="form-input" type="text" id="voteQuestion"
+                 placeholder="e.g. Where should we eat on New Year's Eve?">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Options *</label>
+          <div id="voteOptions">
+            <div class="vote-option-input-row">
+              <input class="form-input" type="text" placeholder="Option 1" style="margin-bottom:6px">
+            </div>
+            <div class="vote-option-input-row">
+              <input class="form-input" type="text" placeholder="Option 2" style="margin-bottom:6px">
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="addVoteOption()">+ Add option</button>
+        </div>
+        <div class="divider"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-ghost" onclick="closeVoteModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveVoteTopic()">Create vote</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeVoteModal(); });
+  }
+
+  // Reset
+  document.getElementById('voteQuestion').value = '';
+  document.getElementById('voteOptions').innerHTML = `
+    <div class="vote-option-input-row"><input class="form-input" type="text" placeholder="Option 1" style="margin-bottom:6px"></div>
+    <div class="vote-option-input-row"><input class="form-input" type="text" placeholder="Option 2" style="margin-bottom:6px"></div>`;
+  modal.style.display = 'flex';
+};
+
+window.closeVoteModal = function() {
+  const m = document.getElementById('voteModalOverlay');
+  if (m) m.style.display = 'none';
+};
+
+window.addVoteOption = function() {
+  const container = document.getElementById('voteOptions');
+  const count = container.querySelectorAll('input').length + 1;
+  const row = document.createElement('div');
+  row.className = 'vote-option-input-row';
+  row.innerHTML = `<input class="form-input" type="text" placeholder="Option ${count}" style="margin-bottom:6px">`;
+  container.appendChild(row);
+};
+
+window.saveVoteTopic = async function() {
+  const question = document.getElementById('voteQuestion').value.trim();
+  if (!question) { alert('Please enter a question.'); return; }
+
+  const options = [...document.querySelectorAll('#voteOptions input')]
+    .map(i => i.value.trim()).filter(Boolean);
+  if (options.length < 2) { alert('Please enter at least 2 options.'); return; }
+
+  // Check for duplicate topic
+  if (voteTopics[question]) { alert('A vote with this question already exists.'); return; }
+
+  // Store vote topic + options in trip metadata (votes table rows need a user)
+  // We store one "definition" row per option using the current user as creator
+  const { data: { session } } = await supabase.auth.getSession();
+  const uid = session?.user?.id;
+  if (!uid) { showToast('Sign in to create a vote.'); return; }
+
+  const inserts = options.map(opt => ({
+    trip_id: TRIP_ID,
+    user_id: uid,
+    topic: question,
+    option_text: opt,
+    value: 0,  // 0 = definition row, not a real vote
+  }));
+
+  const { data, error } = await supabase.from('votes').insert(inserts).select();
+  if (error) { showToast('Could not create vote: ' + error.message); console.error(error); return; }
+
+  allVotes.push(...(data || []));
+  buildVoteTopics();
+  closeVoteModal();
+  renderNotesList();
+  showToast('Vote created!');
+};
+
+// ── NOTE CRUD ──
+window.openNoteModal = function(editId) {
+  const editing = editId ? allTripNotes.find(n => n.id === editId) : null;
+  let modal = document.getElementById('noteModalOverlay');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'noteModalOverlay';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(44,32,56,0.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px';
+    modal.innerHTML = `
+      <div style="background:var(--surface);border-radius:20px;width:100%;max-width:460px;padding:24px;box-shadow:0 20px 60px rgba(44,32,56,0.2)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <h2 style="font-family:var(--font-display);font-size:1.2rem;font-weight:600" id="noteModalTitle">Add Note</h2>
+          <button class="btn btn-icon" onclick="closeNoteModal()">✕</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Title</label>
+          <input class="form-input" type="text" id="noteTitle" placeholder="e.g. Packing list, Reminders, Ideas…">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Note</label>
+          <textarea class="form-input" id="noteBody" rows="5" style="resize:vertical"
+                    placeholder="Add your note here…"></textarea>
+        </div>
+        <div class="divider"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-ghost" onclick="closeNoteModal()">Cancel</button>
+          <button class="btn btn-primary" id="noteSaveBtn" onclick="saveNote()">Add note</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeNoteModal(); });
+  }
+  document.getElementById('noteModalTitle').textContent = editing ? 'Edit Note' : 'Add Note';
+  document.getElementById('noteSaveBtn').textContent = editing ? 'Save changes' : 'Add note';
+  document.getElementById('noteSaveBtn').dataset.editId = editId || '';
+  document.getElementById('noteTitle').value = editing?.title || '';
+  document.getElementById('noteBody').value = editing?.body || '';
+  modal.style.display = 'flex';
+};
+
+window.closeNoteModal = function() {
+  const m = document.getElementById('noteModalOverlay');
+  if (m) m.style.display = 'none';
+};
+
+window.editNote = function(id) { openNoteModal(id); };
+
+window.saveNote = async function() {
+  const editId = document.getElementById('noteSaveBtn').dataset.editId || null;
+  const title = document.getElementById('noteTitle').value.trim() || 'Note';
+  const body = document.getElementById('noteBody').value.trim();
+  if (!body) { alert('Please enter a note.'); return; }
+
+  const saveBtn = document.getElementById('noteSaveBtn');
+  saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+
+  let error;
+  if (editId) {
+    const res = await supabase.from('trip_notes')
+      .update({ title, body, updated_at: new Date().toISOString() }).eq('id', editId);
+    error = res.error;
+    if (!error) {
+      const idx = allTripNotes.findIndex(n => n.id === editId);
+      if (idx > -1) { allTripNotes[idx].title = title; allTripNotes[idx].body = body; }
+    }
+  } else {
+    const res = await supabase.from('trip_notes')
+      .insert({ trip_id: TRIP_ID, user_id: currentUserId, title, body })
+      .select('*').single();
+    error = res.error;
+    if (!error && res.data) {
+      // Attach current user's profile to the new note for immediate display
+      const { data: myProfile } = await supabase
+        .from('profiles').select('id, full_name, avatar_url')
+        .eq('id', currentUserId).single();
+      allTripNotes.push({ ...res.data, profiles: myProfile || null });
+    }
+  }
+
+  saveBtn.disabled = false; saveBtn.textContent = editId ? 'Save changes' : 'Add note';
+  if (error) { showToast('Could not save note: ' + error.message); return; }
+  closeNoteModal();
+  renderNotesList();
+  showToast(editId ? 'Note updated!' : 'Note added!');
+};
+
+window.deleteNote = async function(id) {
+  if (!confirm('Delete this note?')) return;
+  const { error } = await supabase.from('trip_notes').delete().eq('id', id);
+  if (error) { showToast('Could not delete note.'); return; }
+  allTripNotes = allTripNotes.filter(n => n.id !== id);
+  renderNotesList();
+  showToast('Note deleted.');
+};
+
+window.toggleNotePrivacy = async function(id, currentlyPrivate) {
+  const newVal = !currentlyPrivate;
+  const { error } = await supabase
+    .from('trip_notes').update({ is_private: newVal }).eq('id', id);
+  if (error) { showToast('Could not update note.'); return; }
+  const note = allTripNotes.find(n => n.id === id);
+  if (note) note.is_private = newVal;
+  renderNotesList();
+  showToast(newVal ? 'Note is now private.' : 'Note is now shared with the group.');
+};
+
+function formatTimeAgo(dateStr) {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
 // ── TRIP INTEL (Claude API) ──
 async function renderTripIntel() {
   const el = document.getElementById('intel-panel');

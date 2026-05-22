@@ -355,7 +355,21 @@
     /* ── GRID VIEW ── */
     .grid-view { display: none; }
     .grid-view.active { display: flex; flex-direction: column; overflow: hidden; }
+    /* Day nav only relevant in list/card view */
+    .grid-view.active ~ * #dayNav,
+    body.view-grid #dayNav { display: none; }
+    body.view-grid .day-nav { display: none; }
 
+    /* Grid: header scroll wrap (x only, no y) sits above body */
+    .grid-header-wrap {
+      overflow-x: auto;
+      overflow-y: hidden;
+      flex-shrink: 0;
+      scrollbar-width: none;
+    }
+    .grid-header-wrap::-webkit-scrollbar { display: none; }
+
+    /* Grid: body scroll wrap (both x and y) */
     .grid-scroll-wrap {
       flex: 1;
       overflow-x: auto;
@@ -369,10 +383,8 @@
       grid-template-columns: 56px repeat(var(--day-count, 5), 140px);
       border-bottom: 1px solid var(--border);
       background: var(--surface);
-      position: sticky;
-      top: 0;
-      z-index: 10;
       min-width: max-content;
+      z-index: 10;
     }
 
     /* Hotel row */
@@ -382,8 +394,6 @@
       background: rgba(168,159,200,0.08);
       border-bottom: 1px solid var(--border);
       min-width: max-content;
-      position: sticky;
-      top: 0;
       z-index: 9;
       min-height: 28px;
     }
@@ -1027,34 +1037,171 @@
     .trav-field-label { font-size: 0.65rem; color: var(--text-muted); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
     .trav-field-val { font-size: 0.78rem; font-weight: 500; }
 
-    /* Notes & Votes */
-    .vote-card {
-      padding: 14px 16px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md, 12px);
-      margin-bottom: 8px;
+    /* Notes & Votes layout */
+    .notes-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: flex-start;
     }
-    .vote-card-title { font-size: 0.85rem; font-weight: 500; margin-bottom: 10px; }
-    .vote-option { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; padding: 4px 0; }
-    .vote-option-text { flex: 1; }
-    .vote-btns { display: flex; align-items: center; gap: 4px; }
-    .vote-btn { border: none; background: none; cursor: pointer; font-size: 0.9rem; padding: 2px 4px; border-radius: 4px; }
-    .vote-btn:hover { background: var(--muted); }
-    .vote-count { font-size: 0.72rem; color: var(--text-muted); min-width: 16px; text-align: center; }
+    @media (max-width: 700px) { .notes-layout { grid-template-columns: 1fr; } }
+    .notes-col-header { margin-bottom: 12px; }
+    .notes-empty {
+      font-size: 0.78rem; color: var(--text-muted);
+      padding: 24px 16px; text-align: center;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+    }
     .notes-textarea {
       width: 100%; border: 1px solid var(--border);
-      border-radius: var(--radius-md, 12px);
+      border-radius: 12px;
       padding: 12px 14px;
       font-size: 0.82rem;
       font-family: var(--font-body);
       background: var(--surface);
       color: var(--text);
       resize: vertical;
-      min-height: 100px;
-      margin-top: 10px;
+      min-height: 220px;
     }
     .notes-textarea:focus { outline: none; border-color: var(--primary); }
+
+    /* Vote cards */
+    .vote-card {
+      padding: 14px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 10px;
+    }
+    .vote-card-title {
+      font-size: 0.85rem; font-weight: 500;
+    }
+    .vote-option-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(44,32,56,0.06);
+    }
+    .vote-option-row:last-of-type { border-bottom: none; }
+    .vote-option-label { font-size: 0.78rem; min-width: 0; }
+    .vote-bar-wrap {
+      grid-column: 1 / -1;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 2px 0 4px;
+      overflow: hidden;
+    }
+    .vote-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #EBA8B8, #A89FC8);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+      min-width: 0%;
+    }
+    .vote-tally {
+      display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+    }
+    .vote-btn {
+      border: none; background: none; cursor: pointer;
+      font-size: 0.85rem; padding: 3px 5px; border-radius: 6px;
+      transition: background 0.15s; line-height: 1;
+    }
+    .vote-btn:hover { background: var(--muted); }
+    .vote-btn.voted-up   { background: #E4F5EE; }
+    .vote-btn.voted-down { background: #FCEDE6; }
+    .vote-count {
+      font-size: 0.7rem; color: var(--text-muted);
+      min-width: 14px; text-align: center;
+    }
+    /* Note cards */
+    .note-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      transition: box-shadow 0.15s;
+    }
+    .note-card:hover { box-shadow: 0 2px 12px rgba(44,32,56,0.08); }
+    .note-card-header {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; gap: 8px;
+      margin-bottom: 6px;
+    }
+    .note-card-title {
+      font-size: 0.82rem; font-weight: 600;
+      color: var(--text); flex: 1; min-width: 0;
+    }
+    .note-card-actions {
+      display: flex; align-items: center; gap: 4px;
+      flex-shrink: 0;
+    }
+    .note-card-body {
+      font-size: 0.78rem; color: var(--text);
+      line-height: 1.6; white-space: pre-wrap;
+    }
+    /* Author avatar — always visible, shows tooltip on hover */
+    .note-author-avatar {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white; font-size: 0.58rem; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; cursor: default;
+      position: relative;
+      overflow: hidden;
+    }
+    /* Edit/delete/privacy only visible on hover */
+    .note-card-actions .btn-icon {
+      opacity: 0; transition: opacity 0.15s;
+    }
+    .note-card:hover .note-card-actions .btn-icon { opacity: 1; }
+    .note-card-private {
+      border-color: rgba(226,75,74,0.2);
+      background: rgba(226,75,74,0.02);
+    }
+    /* Privacy dot button */
+    .note-privacy-dot {
+      display: flex; align-items: center; gap: 4px;
+      border: none; background: none; cursor: pointer;
+      font-family: var(--font-body); font-size: 0.68rem;
+      padding: 2px 4px; border-radius: 6px;
+      flex-shrink: 0; transition: opacity 0.15s;
+    }
+    /* Private always visible; shared only on hover */
+    .note-privacy-dot.private { opacity: 1; }
+    .note-privacy-dot.shared  { opacity: 0; }
+    .note-card:hover .note-privacy-dot { opacity: 1; }
+    .privacy-dot-circle {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    }
+    .note-privacy-dot.private .privacy-dot-circle { background: #E24B4A; }
+    .note-privacy-dot.shared  .privacy-dot-circle { background: #2BA176; }
+    .note-privacy-dot.private .privacy-dot-label { color: #E24B4A; }
+    .note-privacy-dot.shared  .privacy-dot-label { color: #2BA176; }
+    .note-privacy-dot:hover { background: var(--muted); }
+
+    .vote-card-closed {
+      border-color: rgba(43,161,118,0.3);
+      background: rgba(43,161,118,0.03);
+    }
+    .vote-option-winner {
+      background: rgba(43,161,118,0.06);
+      border-radius: 6px;
+      margin: 0 -4px;
+      padding: 0 4px;
+    }
+    .vote-winner {
+      font-size: 0.78rem; font-weight: 500;
+      color: #1A6B50;
+      background: #E4F5EE;
+      border-radius: 8px;
+      padding: 6px 10px;
+      margin-bottom: 10px;
+    }
 
     /* Trip Intel */
     #intel-panel {
@@ -1365,31 +1512,17 @@
 
       <!-- ── GRID VIEW ── -->
       <div class="grid-view" id="grid-view" style="--day-count:3">
-        <div class="grid-scroll-wrap">
-
-          <div class="grid-header-row">
+        <!-- Header wrap: scrolls horizontally only, frozen vertically -->
+        <div class="grid-header-wrap" id="gridHeaderWrap">
+          <div class="grid-header-row" id="gridHeaderRow">
             <div class="grid-time-header">Time</div>
-            <div class="grid-day-header today">
-              <div class="grid-day-name">Saturday</div>
-              <div class="grid-day-date">Sep 5</div>
-              <div class="grid-day-location">📍 Amalfi</div>
-            </div>
-            <div class="grid-day-header">
-              <div class="grid-day-name">Sunday</div>
-              <div class="grid-day-date">Sep 6</div>
-              <div class="grid-day-location">📍 Positano</div>
-            </div>
-            <div class="grid-day-header">
-              <div class="grid-day-name">Monday</div>
-              <div class="grid-day-date">Sep 7</div>
-              <div class="grid-day-location">📍 Ravello</div>
-            </div>
           </div>
-
+        </div>
+        <!-- Body wrap: scrolls both ways, header stays pinned above -->
+        <div class="grid-scroll-wrap" id="gridScrollWrap">
           <div class="grid-body" id="gridBody">
-            <!-- Rows generated by JS -->
+            <!-- Hotel row + time rows generated by JS -->
           </div>
-
         </div>
       </div>
 
