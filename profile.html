@@ -465,6 +465,22 @@
         <label class="form-label">Website</label>
         <input class="form-input" type="url" data-edit-website placeholder="https://yoursite.com">
       </div>
+      <div class="form-group">
+        <label class="form-label">Phone</label>
+        <input class="form-input" type="tel" data-edit-phone placeholder="e.g. +1 305 555 0100">
+      </div>
+      <div style="border-top:1px solid var(--border);margin:16px 0 14px;"></div>
+      <div style="font-size:0.78rem;font-weight:500;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.06em;">Emergency Contact</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input class="form-input" type="text" data-edit-emergency-name placeholder="Full name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input class="form-input" type="tel" data-edit-emergency-phone placeholder="+1 305 555 0101">
+        </div>
+      </div>
       <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:1rem;">
         <button type="button" class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
         <button type="submit" class="btn btn-primary" data-submit-btn>Save Changes</button>

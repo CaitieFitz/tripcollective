@@ -1184,6 +1184,62 @@
       font-size: 0.68rem; color: var(--text-muted);
       margin-top: 4px; line-height: 1.5;
     }
+    /* Reservation filter pills */
+    .res-filter-pill {
+      padding: 4px 11px;
+      border-radius: 20px;
+      border: 0.5px solid var(--border);
+      background: none;
+      font-size: 0.72rem; font-weight: 500;
+      font-family: var(--font-body);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .res-filter-pill:hover { border-color: var(--accent); color: var(--text); }
+    .res-filter-pill.active { background: #FCEEF3; border-color: #EBA8B8; color: #A04060; }
+    /* Traveller avatars — aurora palette cycle */
+    .res-trav-avatar {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      color: white;
+      font-size: 0.55rem; font-weight: 600;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: 1.5px solid var(--surface);
+      margin-right: -5px;
+      flex-shrink: 0;
+    }
+    .res-trav-avatar:nth-child(5n+1) { background: #E8856A; } /* coral */
+    .res-trav-avatar:nth-child(5n+2) { background: #EBA8B8; } /* pink */
+    .res-trav-avatar:nth-child(5n+3) { background: #A89FC8; } /* purple */
+    .res-trav-avatar:nth-child(5n+4) { background: #8FA3D4; } /* blue */
+    .res-trav-avatar:nth-child(5n+5) { background: #2BA176; } /* green */
+    /* Trav cards in travellers tab */
+    .trav-avatar:nth-child(5n+1), .trav-card:nth-child(5n+1) .trav-avatar { background: linear-gradient(135deg,#E8856A,#EBA8B8); }
+    .trav-avatar:nth-child(5n+2), .trav-card:nth-child(5n+2) .trav-avatar { background: linear-gradient(135deg,#EBA8B8,#A89FC8); }
+    .trav-avatar:nth-child(5n+3), .trav-card:nth-child(5n+3) .trav-avatar { background: linear-gradient(135deg,#A89FC8,#8FA3D4); }
+    .trav-avatar:nth-child(5n+4), .trav-card:nth-child(5n+4) .trav-avatar { background: linear-gradient(135deg,#8FA3D4,#2BA176); }
+    .trav-avatar:nth-child(5n+5), .trav-card:nth-child(5n+5) .trav-avatar { background: linear-gradient(135deg,#2BA176,#E8856A); }
+    .trav-check-pill {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-family: var(--font-body);
+      background: none;
+      color: var(--text-muted);
+      transition: all 0.15s;
+    }
+    .trav-check-pill.checked {
+      background: #FCEEF3; border-color: #EBA8B8; color: #A04060;
+    }
+    .trav-check-pill .pill-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--border); flex-shrink: 0;
+    }
+    .trav-check-pill.checked .pill-dot { background: #EBA8B8; }
   </style>
 </head>
 <body>
@@ -1594,6 +1650,13 @@
       </div>
     </div>
 
+    <div class="form-group">
+      <label class="form-label">Travellers included</label>
+      <div id="resTravellerChecks" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+        <span style="font-size:0.72rem;color:var(--text-muted)">Loading travellers…</span>
+      </div>
+    </div>
+
     <div class="divider"></div>
     <div class="flex" style="gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeResModal()">Cancel</button>
@@ -1770,6 +1833,8 @@
       selectResType(hotelBtn);
     }
     modal.classList.add('open');
+    // Populate traveller pills (empty selection for new, pre-filled for edit)
+    if (window.populateResTravellerChecks) window.populateResTravellerChecks();
   }
   window.openResModal = openResModal;
 

@@ -55,34 +55,46 @@ document.addEventListener('DOMContentLoaded', async () => {
 // LOAD PROFILE
 // ============================================================
 async function loadProfile(userId) {
-const { data: profiles, error } = await supabase
-  .from('profiles')
-  .select('full_name, avatar_url, bio, location, created_at')
-  .eq('id', userId)
-  .limit(1);
+  const { data: profiles, error } = await supabase
+    .from('profiles')
+    .select('full_name, avatar_url, bio, location, phone, emergency_contact_name, emergency_contact_phone, created_at')
+    .eq('id', userId)
+    .limit(1);
 
-if (error || !profiles?.length) {
-  console.warn('Profile not found:', error?.message);
-  return;
-}
-
-const profile = profiles[0];
+  if (error || !profiles?.length) {
+    console.warn('Profile not found:', error?.message);
+    return;
   }
+
+  const profile = profiles[0];
 
   setEl('[data-profile-name]', profile.full_name || 'Traveler');
   setEl('[data-profile-bio]', profile.bio || (isOwnProfile ? 'Add a bio to tell the community about yourself.' : ''));
   setEl('[data-profile-location]', profile.location || '');
-  setEl('[data-profile-joined]', `Member since ${formatDate(profile.created_at, true)}`);
+  setEl('[data-profile-joined]', profile.created_at ? `Member since ${formatDate(profile.created_at, true)}` : '');
 
-  // Avatar
+  // Avatar — update both the profile hero AND the nav avatar
+  const name = profile.full_name || 'Traveler';
+  const initials = name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+
   const avatarEl = document.querySelector('[data-profile-avatar]');
   if (avatarEl) {
-    const name = profile.full_name || 'T';
-    const initials = name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
     if (profile.avatar_url) {
       avatarEl.innerHTML = `<img src="${profile.avatar_url}" alt="${escapeHtml(name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
     } else {
       avatarEl.textContent = initials;
+    }
+  }
+
+  // Fix nav avatar (hardcoded "SC" in HTML)
+  const navAvatar = document.querySelector('[data-nav-avatar]');
+  if (navAvatar) {
+    if (profile.avatar_url) {
+      navAvatar.innerHTML = `<img src="${profile.avatar_url}" alt="${escapeHtml(name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+      navAvatar.style.padding = '0';
+      navAvatar.style.overflow = 'hidden';
+    } else {
+      navAvatar.textContent = initials;
     }
   }
 
@@ -91,6 +103,9 @@ const profile = profiles[0];
     setInputVal('[data-edit-name]', profile.full_name || '');
     setInputVal('[data-edit-bio]', profile.bio || '');
     setInputVal('[data-edit-location]', profile.location || '');
+    setInputVal('[data-edit-phone]', profile.phone || '');
+    setInputVal('[data-edit-emergency-name]', profile.emergency_contact_name || '');
+    setInputVal('[data-edit-emergency-phone]', profile.emergency_contact_phone || '');
   }
 }
 
@@ -195,7 +210,11 @@ async function loadPublishedGuides(userId) {
 // EDIT PROFILE
 // ============================================================
 function showEditControls() {
-  document.querySelectorAll('[data-own-only]').forEach(el => el.style.display = '');
+  document.querySelectorAll('[data-own-only]').forEach(el => {
+    // Don't auto-show the edit modal — it opens only on button click
+    if (el.hasAttribute('data-edit-modal')) return;
+    el.style.display = '';
+  });
 }
 
 function wireEditForm() {
@@ -211,7 +230,9 @@ function wireEditForm() {
       full_name: form.querySelector('[data-edit-name]')?.value?.trim() || null,
       bio: form.querySelector('[data-edit-bio]')?.value?.trim() || null,
       location: form.querySelector('[data-edit-location]')?.value?.trim() || null,
-      updated_at: new Date().toISOString(),
+      phone: form.querySelector('[data-edit-phone]')?.value?.trim() || null,
+      emergency_contact_name: form.querySelector('[data-edit-emergency-name]')?.value?.trim() || null,
+      emergency_contact_phone: form.querySelector('[data-edit-emergency-phone]')?.value?.trim() || null,
     };
 
     const { error } = await supabase
@@ -220,12 +241,19 @@ function wireEditForm() {
       .eq('id', currentUserId);
 
     if (error) {
-      showToast('Could not save changes. Please try again.', 'error');
+      console.error('Profile save error:', error);
+      showToast('Could not save changes: ' + error.message, 'error');
     } else {
       showToast('Profile updated!', 'success');
       setEl('[data-profile-name]', updates.full_name || 'Traveler');
       setEl('[data-profile-bio]', updates.bio || '');
       setEl('[data-profile-location]', updates.location || '');
+      // Update nav avatar initials if name changed
+      const navAvatar = document.querySelector('[data-nav-avatar]');
+      if (navAvatar && !navAvatar.querySelector('img')) {
+        const initials = (updates.full_name || 'T').split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase();
+        navAvatar.textContent = initials;
+      }
       closeEditModal();
     }
 

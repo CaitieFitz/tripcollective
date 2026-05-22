@@ -766,13 +766,27 @@ const TYPE_ORDER  = ['flight', 'hotel', 'car', 'tour', 'other'];
 
 let allReservations = [];
 
+// Aurora avatar color palette — cycles by index
+const AURORA_COLORS = ['#E8856A','#EBA8B8','#A89FC8','#8FA3D4','#2BA176'];
+function auroraColor(index) { return AURORA_COLORS[index % AURORA_COLORS.length]; }
+
+// Active filter — array of traveller IDs (empty = show all)
+let resFilterIds = [];
+
 async function renderReservations() {
   const el = document.getElementById('reservations-content');
   if (!el) return;
 
+  // Fetch reservations + their traveller links in one go
   const { data, error } = await supabase
     .from('reservations')
-    .select('*')
+    .select(`
+      *,
+      reservation_travellers (
+        traveller_id,
+        travellers ( id, name )
+      )
+    `)
     .eq('trip_id', TRIP_ID)
     .order('start_datetime', { ascending: true });
 
@@ -782,6 +796,7 @@ async function renderReservations() {
   }
 
   allReservations = data || [];
+  resFilterIds = [];
   renderReservationsList();
 }
 
@@ -789,10 +804,40 @@ function renderReservationsList() {
   const el = document.getElementById('reservations-content');
   if (!el) return;
 
-  // Add button header
-  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+  // Collect all unique travellers across all reservations for filter bar
+  const travMap = {};
+  allReservations.forEach(r => {
+    (r.reservation_travellers || []).forEach(rt => {
+      if (rt.travellers) travMap[rt.travellers.id] = rt.travellers.name;
+    });
+  });
+  const allTravIds = Object.keys(travMap);
+
+  // ── Filter bar ──
+  let filterHtml = '';
+  if (allTravIds.length > 0) {
+    filterHtml = `<div id="res-filter-bar" style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:14px">
+      <span style="font-size:0.72rem;color:var(--text-muted);margin-right:2px">Filter:</span>
+      <button class="res-filter-pill ${resFilterIds.length === 0 ? 'active' : ''}"
+              onclick="setResFilter(null)">All</button>
+      ${allTravIds.map(id => {
+        const name = travMap[id];
+        const initials = name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+        const active = resFilterIds.includes(id);
+        const pillColor = auroraColor(Object.keys(travMap).indexOf(id));
+        return `<button class="res-filter-pill ${active ? 'active' : ''}"
+                  data-filter-id="${id}"
+                  style="${active ? `background:${pillColor}22;border-color:${pillColor};color:${pillColor}` : ''}"
+                  onclick="toggleResFilter('${id}')">${initials} ${name.split(' ')[0]}</button>`;
+      }).join('')}
+    </div>`;
+  }
+
+  // Header row
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
     <button class="btn btn-primary btn-sm" onclick="openResModal()">+ Add reservation</button>
-  </div>`;
+  </div>
+  ${filterHtml}`;
 
   if (allReservations.length === 0) {
     html += `<div style="text-align:center;padding:3rem 1rem;color:var(--text-muted)">
@@ -802,16 +847,24 @@ function renderReservationsList() {
     return;
   }
 
+  // Apply filter
+  const filtered = resFilterIds.length === 0 ? allReservations : allReservations.filter(r => {
+    const rTravIds = (r.reservation_travellers || []).map(rt => rt.traveller_id);
+    return resFilterIds.every(fid => rTravIds.includes(fid));
+  });
+
   // Group by type
   const grouped = {};
-  allReservations.forEach(r => {
+  filtered.forEach(r => {
     const t = r.type || 'other';
     if (!grouped[t]) grouped[t] = [];
     grouped[t].push(r);
   });
 
+  let hasAny = false;
   TYPE_ORDER.forEach(type => {
     if (!grouped[type]) return;
+    hasAny = true;
     html += `<div class="sp-section">
       <div class="sp-section-title">${TYPE_LABELS[type] || type}</div>`;
     grouped[type].forEach(r => {
@@ -821,12 +874,27 @@ function renderReservationsList() {
       const dateDetail = start && end && start !== end
         ? `${start} – ${end}`
         : start + (startTime ? ` · ${startTime}` : '');
-      html += `<div class="res-card" style="position:relative">
+
+      // Travellers for this reservation
+      const resTravellers = (r.reservation_travellers || [])
+        .map(rt => rt.travellers).filter(Boolean);
+      const travAvatars = resTravellers.length > 0
+        ? `<div style="display:flex;align-items:center;gap:0;margin-top:8px">
+            ${resTravellers.map((t, i) => {
+              const ini = t.name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+              return `<div class="res-trav-avatar" style="background:${auroraColor(i)}" title="${escapeHtml(t.name)}">${ini}</div>`;
+            }).join('')}
+            ${resTravellers.length > 1 ? `<span style="font-size:0.68rem;color:var(--text-muted);margin-left:8px">${resTravellers.map(t=>t.name.split(' ')[0]).join(', ')}</span>` : `<span style="font-size:0.68rem;color:var(--text-muted);margin-left:7px">${resTravellers[0].name.split(' ')[0]}</span>`}
+           </div>`
+        : '';
+
+      html += `<div class="res-card">
         <div class="res-icon res-icon-${type}">${TYPE_ICONS[type] || '📋'}</div>
         <div style="flex:1;min-width:0">
           <div class="res-name">${escapeHtml(r.name || '')}</div>
           <div class="res-detail">${dateDetail}${r.location ? ` · 📍 ${escapeHtml(r.location)}` : ''}</div>
           ${r.notes ? `<div class="res-detail" style="margin-top:4px;white-space:pre-line">${escapeHtml(r.notes)}</div>` : ''}
+          ${travAvatars}
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0;align-self:flex-start">
           <button class="btn btn-icon" style="width:26px;height:26px;font-size:0.7rem"
@@ -839,10 +907,30 @@ function renderReservationsList() {
     html += `</div>`;
   });
 
+  if (!hasAny) {
+    html += `<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.82rem">
+      No reservations match the selected travellers.
+    </div>`;
+  }
+
   el.innerHTML = html;
 }
 
-window.openEditReservation = function(id) {
+window.setResFilter = function(id) {
+  resFilterIds = [];
+  renderReservationsList();
+};
+
+window.toggleResFilter = function(id) {
+  if (resFilterIds.includes(id)) {
+    resFilterIds = resFilterIds.filter(x => x !== id);
+  } else {
+    resFilterIds.push(id);
+  }
+  renderReservationsList();
+};
+
+window.openEditReservation = async function(id) {
   const r = allReservations.find(x => x.id === id);
   if (!r) return;
 
@@ -875,7 +963,45 @@ window.openEditReservation = function(id) {
   }
 
   openResModal(id);
+
+  // Load which travellers are already linked
+  const { data: links } = await supabase
+    .from('reservation_travellers')
+    .select('traveller_id')
+    .eq('reservation_id', id);
+  const selectedIds = (links || []).map(l => l.traveller_id);
+  populateResTravellerChecks(selectedIds);
 };
+
+// Populate traveller checkboxes in reservation modal
+async function populateResTravellerChecks(selectedIds = []) {
+  const container = document.getElementById('resTravellerChecks');
+  if (!container) return;
+
+  // Use cached allTravellers if available, otherwise fetch
+  let travellers = allTravellers;
+  if (!travellers || travellers.length === 0) {
+    const { data } = await supabase
+      .from('travellers').select('id, name').eq('trip_id', TRIP_ID);
+    travellers = data || [];
+  }
+
+  if (travellers.length === 0) {
+    container.innerHTML = `<span style="font-size:0.72rem;color:var(--text-muted)">Add travellers first in the Travellers tab.</span>`;
+    return;
+  }
+
+  container.innerHTML = travellers.map(t => {
+    const checked = selectedIds.includes(t.id);
+    const initials = t.name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+    return `<button type="button"
+      class="trav-check-pill ${checked ? 'checked' : ''}"
+      data-trav-id="${t.id}"
+      onclick="this.classList.toggle('checked')">
+      <span class="pill-dot"></span>${escapeHtml(initials)} ${escapeHtml(t.name.split(' ')[0])}
+    </button>`;
+  }).join('');
+}
 
 window.confirmDeleteReservation = function(id) {
   if (!confirm('Delete this reservation?')) return;
@@ -890,6 +1016,7 @@ async function deleteReservation(id) {
   showToast('Reservation deleted.');
 }
 
+window.populateResTravellerChecks = populateResTravellerChecks;
 window.saveReservation = async function() {
   const modal = document.getElementById('resModal');
   const editId = modal.dataset.editId || null;
@@ -940,64 +1067,332 @@ window.saveReservation = async function() {
   // Re-sort by start_datetime
   allReservations.sort((a, b) => (a.start_datetime || '').localeCompare(b.start_datetime || ''));
 
+  // Save reservation_travellers links
+  const checkedIds = [...document.querySelectorAll('.trav-check-pill.checked')]
+    .map(el => el.dataset.travId).filter(Boolean);
+  const savedResId = editId || res?.data?.id;
+  if (savedResId) {
+    // Delete existing links then re-insert
+    await supabase.from('reservation_travellers').delete().eq('reservation_id', savedResId);
+    if (checkedIds.length > 0) {
+      await supabase.from('reservation_travellers').insert(
+        checkedIds.map(tid => ({ reservation_id: savedResId, traveller_id: tid }))
+      );
+    }
+  }
+
   closeResModal();
   renderReservationsList();
+  // Refresh travellers tab if it was already loaded so reservation links update
+  if (travellersLoaded) {
+    travellersLoaded = false;
+    renderTravellers();
+  }
   showToast(editId ? 'Reservation updated!' : 'Reservation added!');
 };
 
 // ── TRAVELLERS ──
+let allTravellers = [];
+
 async function renderTravellers() {
   const el = document.getElementById('travellers-content');
   if (!el) return;
 
-  // Load collaborators for this trip
-  const { data: collabs, error } = await supabase
-    .from('trip_collaborators')
-    .select('user_id, role, profiles(full_name, avatar_url)')
-    .eq('trip_id', TRIP_ID);
+  // Ensure the trip owner is in the travellers table
+  await ensureOwnerTraveller();
 
-  if (error && error.code !== 'PGRST116') {
-    el.innerHTML = `<div style="padding:2rem;color:var(--text-muted)">Could not load travellers.</div>`;
+  // Load from travellers table, with their linked reservations
+  const { data, error } = await supabase
+    .from('travellers')
+    .select(`
+      *,
+      reservation_travellers (
+        reservation_id,
+        reservations ( id, type, name, start_datetime, end_datetime )
+      )
+    `)
+    .eq('trip_id', TRIP_ID)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    el.innerHTML = `<div style="padding:2rem;color:var(--text-muted)">Could not load travellers: ${error.message}</div>`;
     return;
   }
 
-  // Always include the trip owner
-  const owner = {
-    name: 'You (Trip Owner)',
-    role: 'owner',
-    avatar_url: null,
-  };
+  allTravellers = data || [];
+  renderTravellersList();
+}
 
-  const travellers = [owner, ...(collabs || []).map(c => ({
-    name: c.profiles?.full_name || 'Traveller',
-    role: c.role || 'collaborator',
-    avatar_url: c.profiles?.avatar_url || null,
-  }))];
+async function ensureOwnerTraveller() {
+  // Check if owner already exists in travellers table
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+  const userId = session.user.id;
 
-  const roleLabels = { owner: 'Trip owner', editor: 'Can edit', viewer: 'View only', collaborator: 'Collaborator' };
+  const { data: existing } = await supabase
+    .from('travellers')
+    .select('id')
+    .eq('trip_id', TRIP_ID)
+    .eq('user_id', userId)
+    .limit(1);
 
-  let html = `<div class="sp-section">
-    <div class="sp-section-title">Trip members</div>`;
-  travellers.forEach(t => {
-    const initials = t.name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
-    html += `<div class="trav-card">
-      <div class="trav-header">
-        <div class="trav-avatar">${t.avatar_url
-          ? `<img src="${t.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
-          : initials}</div>
-        <div>
-          <div class="trav-name">${escapeHtml(t.name)}</div>
-          <div class="trav-role">${roleLabels[t.role] || t.role}</div>
-        </div>
-      </div>
-    </div>`;
+  if (existing && existing.length > 0) return;
+
+  // Fetch profile info
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name, phone, emergency_contact_name, emergency_contact_phone')
+    .eq('id', userId)
+    .single();
+
+  await supabase.from('travellers').insert({
+    trip_id: TRIP_ID,
+    user_id: userId,
+    name: profile?.full_name || session.user.email?.split('@')[0] || 'Trip Owner',
+    phone: profile?.phone || null,
+    emergency_contact_name: profile?.emergency_contact_name || null,
+    emergency_contact_phone: profile?.emergency_contact_phone || null,
   });
-  html += `</div>
-  <div style="padding:12px 0;color:var(--text-muted);font-size:0.78rem;text-align:center">
-    Full traveller profiles (flights, dietary, rooms) coming soon.
+}
+
+function renderTravellersList() {
+  const el = document.getElementById('travellers-content');
+  if (!el) return;
+
+  let html = `<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:16px">
+    <button class="btn btn-primary btn-sm" onclick="openAddTravellerModal()">+ Add traveller</button>
   </div>`;
 
+  if (allTravellers.length === 0) {
+    html += `<div style="text-align:center;padding:3rem 1rem;color:var(--text-muted)">No travellers yet.</div>`;
+    el.innerHTML = html;
+    return;
+  }
+
+  allTravellers.forEach((t, idx) => {
+    const initials = t.name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+    const linkedRes = (t.reservation_travellers || [])
+      .map(rt => rt.reservations)
+      .filter(Boolean)
+      .sort((a, b) => (a.start_datetime || '').localeCompare(b.start_datetime || ''));
+
+    html += `<div class="trav-card">
+      <div class="trav-header">
+        <div class="trav-avatar" style="background:${auroraColor(idx)};color:white">${initials}</div>
+        <div style="flex:1;min-width:0">
+          <div class="trav-name">${escapeHtml(t.name)}</div>
+          ${t.user_id ? '<div class="trav-role">TripCollective member</div>' : '<div class="trav-role">Guest traveller</div>'}
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn btn-icon" style="width:28px;height:28px;font-size:0.7rem"
+                  onclick="openEditTraveller('${t.id}')" title="Edit">✏️</button>
+          <button class="btn btn-icon" style="width:28px;height:28px;font-size:0.7rem"
+                  onclick="confirmDeleteTraveller('${t.id}')" title="Remove">🗑</button>
+        </div>
+      </div>
+      <div class="trav-fields">
+        ${t.phone ? `<div class="trav-field"><div class="trav-field-label">Phone</div><div class="trav-field-val">${escapeHtml(t.phone)}</div></div>` : ''}
+        ${t.emergency_contact_name ? `<div class="trav-field"><div class="trav-field-label">Emergency contact</div><div class="trav-field-val">${escapeHtml(t.emergency_contact_name)}${t.emergency_contact_phone ? ` · ${escapeHtml(t.emergency_contact_phone)}` : ''}</div></div>` : ''}
+      </div>
+      ${linkedRes.length > 0 ? `
+      <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+        <div class="trav-field-label" style="margin-bottom:6px">Reservations</div>
+        ${linkedRes.map(r => {
+          const icon = TYPE_ICONS[r.type] || '📋';
+          const date = r.start_datetime ? new Date(r.start_datetime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+          return `<div style="display:flex;align-items:center;gap:8px;font-size:0.78rem;padding:3px 0">
+            <span>${icon}</span>
+            <span style="flex:1">${escapeHtml(r.name || '')}</span>
+            <span style="color:var(--text-muted)">${date}</span>
+          </div>`;
+        }).join('')}
+      </div>` : ''}
+    </div>`;
+  });
+
   el.innerHTML = html;
+}
+
+// ── ADD / EDIT TRAVELLER MODAL (injected into DOM) ──
+function openAddTravellerModal(editId) {
+  const editing = editId ? allTravellers.find(t => t.id === editId) : null;
+
+  let modal = document.getElementById('travModalOverlay');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'travModalOverlay';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(44,32,56,0.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px';
+    modal.innerHTML = `
+      <div style="background:var(--surface);border-radius:20px;width:100%;max-width:460px;padding:24px;box-shadow:0 20px 60px rgba(44,32,56,0.2);max-height:90vh;overflow-y:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <h2 style="font-family:var(--font-display);font-size:1.2rem;font-weight:600" id="travModalTitle">Add Traveller</h2>
+          <button class="btn btn-icon" onclick="closeTravModal()">✕</button>
+        </div>
+
+        <div id="travLookupSection">
+          <div class="form-group">
+            <label class="form-label">Email (optional — links to TripCollective account)</label>
+            <div style="display:flex;gap:8px">
+              <input class="form-input" type="email" id="travEmail" placeholder="their@email.com" style="flex:1">
+              <button class="btn btn-ghost btn-sm" onclick="lookupTraveller()" style="flex-shrink:0">Look up</button>
+            </div>
+            <div id="travLookupResult" style="font-size:0.72rem;margin-top:6px;color:var(--text-muted)"></div>
+          </div>
+          <div class="divider"></div>
+        </div>
+
+        <input type="hidden" id="travUserId">
+
+        <div class="form-group">
+          <label class="form-label">Name *</label>
+          <input class="form-input" type="text" id="travName" placeholder="Full name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input class="form-input" type="tel" id="travPhone" placeholder="+1 305 555 0100">
+        </div>
+        <div style="border-top:1px solid var(--border);margin:12px 0 10px"></div>
+        <div style="font-size:0.72rem;font-weight:500;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.06em">Emergency Contact</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group">
+            <label class="form-label">Name</label>
+            <input class="form-input" type="text" id="travEmergencyName" placeholder="Full name">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input class="form-input" type="tel" id="travEmergencyPhone" placeholder="+1 305 555 0101">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-input" id="travNotes" rows="2" placeholder="Dietary restrictions, accessibility needs, etc." style="resize:vertical"></textarea>
+        </div>
+        <div class="divider"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-ghost" onclick="closeTravModal()">Cancel</button>
+          <button class="btn btn-primary" id="travSaveBtn" onclick="saveTraveller()">Add traveller</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeTravModal(); });
+  }
+
+  // Reset / pre-fill
+  document.getElementById('travModalTitle').textContent = editing ? 'Edit Traveller' : 'Add Traveller';
+  document.getElementById('travSaveBtn').textContent = editing ? 'Save changes' : 'Add traveller';
+  document.getElementById('travSaveBtn').dataset.editId = editId || '';
+  document.getElementById('travEmail').value = '';
+  document.getElementById('travUserId').value = editing?.user_id || '';
+  document.getElementById('travName').value = editing?.name || '';
+  document.getElementById('travPhone').value = editing?.phone || '';
+  document.getElementById('travEmergencyName').value = editing?.emergency_contact_name || '';
+  document.getElementById('travEmergencyPhone').value = editing?.emergency_contact_phone || '';
+  document.getElementById('travNotes').value = editing?.notes || '';
+  document.getElementById('travLookupResult').textContent = '';
+  // Hide email lookup when editing
+  document.getElementById('travLookupSection').style.display = editing ? 'none' : 'block';
+
+  modal.style.display = 'flex';
+}
+window.openAddTravellerModal = openAddTravellerModal;
+
+window.openEditTraveller = function(id) { openAddTravellerModal(id); };
+
+window.closeTravModal = function() {
+  const m = document.getElementById('travModalOverlay');
+  if (m) m.style.display = 'none';
+};
+
+window.lookupTraveller = async function() {
+  const email = document.getElementById('travEmail').value.trim();
+  const resultEl = document.getElementById('travLookupResult');
+  if (!email) { resultEl.textContent = 'Enter an email to look up.'; return; }
+
+  resultEl.textContent = 'Looking up…';
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, full_name, phone, emergency_contact_name, emergency_contact_phone')
+    .eq('email', email)
+    .single();
+
+  if (error || !data) {
+    resultEl.style.color = 'var(--text-muted)';
+    resultEl.textContent = 'No TripCollective account found — they will be added as a guest.';
+    return;
+  }
+
+  // Pre-fill from their profile
+  document.getElementById('travUserId').value = data.id;
+  document.getElementById('travName').value = data.full_name || '';
+  document.getElementById('travPhone').value = data.phone || '';
+  document.getElementById('travEmergencyName').value = data.emergency_contact_name || '';
+  document.getElementById('travEmergencyPhone').value = data.emergency_contact_phone || '';
+  resultEl.style.color = '#2BA176';
+  resultEl.textContent = `✓ Found: ${data.full_name || email} — details pre-filled from their profile.`;
+};
+
+window.saveTraveller = async function() {
+  const saveBtn = document.getElementById('travSaveBtn');
+  const editId = saveBtn.dataset.editId || null;
+
+  const name = document.getElementById('travName').value.trim();
+  if (!name) { alert('Name is required.'); return; }
+
+  const payload = {
+    trip_id: TRIP_ID,
+    user_id: document.getElementById('travUserId').value || null,
+    name,
+    phone: document.getElementById('travPhone').value.trim() || null,
+    emergency_contact_name: document.getElementById('travEmergencyName').value.trim() || null,
+    emergency_contact_phone: document.getElementById('travEmergencyPhone').value.trim() || null,
+    notes: document.getElementById('travNotes').value.trim() || null,
+  };
+
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving…';
+
+  let error;
+  if (editId) {
+    const res = await supabase.from('travellers').update(payload).eq('id', editId);
+    error = res.error;
+    if (!error) {
+      const idx = allTravellers.findIndex(t => t.id === editId);
+      if (idx > -1) allTravellers[idx] = { ...allTravellers[idx], ...payload };
+    }
+  } else {
+    const res = await supabase.from('travellers').insert(payload).select(`
+      *,
+      reservation_travellers ( reservation_id, reservations ( id, type, name, start_datetime, end_datetime ) )
+    `).single();
+    error = res.error;
+    if (!error && res.data) allTravellers.push(res.data);
+  }
+
+  saveBtn.disabled = false;
+  saveBtn.textContent = editId ? 'Save changes' : 'Add traveller';
+
+  if (error) {
+    console.error('Traveller save error:', error);
+    showToast('Could not save traveller: ' + error.message);
+    return;
+  }
+
+  closeTravModal();
+  renderTravellersList();
+  showToast(editId ? 'Traveller updated!' : 'Traveller added!');
+};
+
+window.confirmDeleteTraveller = function(id) {
+  if (!confirm('Remove this traveller from the trip?')) return;
+  deleteTraveller(id);
+};
+
+async function deleteTraveller(id) {
+  const { error } = await supabase.from('travellers').delete().eq('id', id);
+  if (error) { showToast('Could not remove traveller.'); return; }
+  allTravellers = allTravellers.filter(t => t.id !== id);
+  renderTravellersList();
+  showToast('Traveller removed.');
 }
 
 // ── NOTES & VOTES ──
