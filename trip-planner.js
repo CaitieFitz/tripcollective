@@ -1929,52 +1929,104 @@ function formatTimeAgo(dateStr) {
   const days = Math.floor(hrs / 24);
   return `${days}d ago`;
 }
-// ── TRIP INTEL (Claude API) ──
-async function renderTripIntel() {
+// ── TRIP INTEL (Claude API via Netlify proxy) ──
+// Cache key: per trip + destination so refreshes are cheap
+function intelCacheKey() {
+  return `tc_intel_${TRIP_ID}_${(tripData?.destination || '').replace(/\s+/g,'_')}`;
+}
+
+window.renderTripIntel = async function renderTripIntel(forceRefresh = false) {
   const el = document.getElementById('intel-panel');
   if (!el) return;
 
   const destination = tripData?.destination || 'your destination';
+
+  // Check localStorage cache first (skip if forcing refresh)
+  if (!forceRefresh) {
+    try {
+      const cached = localStorage.getItem(intelCacheKey());
+      if (cached) {
+        const { intel, ts } = JSON.parse(cached);
+        // Cache valid for 7 days — intel doesn't change often
+        if (Date.now() - ts < 7 * 24 * 60 * 60 * 1000) {
+          renderIntelContent(el, destination, intel);
+          return;
+        }
+      }
+    } catch(e) {}
+  }
 
   el.innerHTML = `<div class="intel-loading">
     <div class="intel-spinner"></div>
     <div class="intel-spinner-label">Asking Claude about ${escapeHtml(destination)}…</div>
   </div>`;
 
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: `You are a travel intelligence assistant. For a trip to ${destination}, provide travel intel as a JSON object ONLY — no markdown, no preamble, just the raw JSON:
-{
-  "esim": [{"name":"string","detail":"string"}],
-  "transit": ["string"],
-  "rideshare": ["string"],
-  "tipping": "string",
-  "delicacies": ["string"],
-  "phrases": [{"en":"string","local":"string"}]
-}
-esim: 2-3 eSIM provider recommendations with price/data. transit: 3-4 practical tips. rideshare: 2 tips. tipping: 1 concise sentence. delicacies: 5-6 must-try local foods. phrases: 6 useful local phrases (English meaning first). Keep all strings under 20 words.`
-        }]
-      })
-    });
+  const prompt = `You are a travel intelligence assistant. For a trip to ${destination}, provide travel intel as a JSON object ONLY — no markdown, no preamble, just the raw JSON object:
+{"esim":[{"name":"string","detail":"string"}],"transit":["string"],"rideshare":["string"],"tipping":"string","delicacies":["string"],"phrases":[{"en":"string","local":"string"}]}
+esim: 2-3 eSIM providers with price/data. transit: 3-4 practical tips. rideshare: 2 tips. tipping: 1 sentence. delicacies: 5-6 must-try foods. phrases: 6 useful local phrases (English meaning first). Keep all strings under 20 words.`;
 
-    const data = await res.json();
-    const raw = data.content?.find(b => b.type === 'text')?.text || '';
-    const clean = raw.replace(/\`\`\`json|\`\`\`/g, '').trim();
+  try {
+    // Try Netlify proxy first (works in production + local with netlify dev)
+    let raw = '';
+    let usedProxy = false;
+
+    try {
+      const proxyRes = await fetch('/.netlify/functions/claude-proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      if (proxyRes.ok) {
+        const proxyText = await proxyRes.text();
+        try {
+          const proxyData = JSON.parse(proxyText);
+          raw = proxyData.text || '';
+          if (raw) usedProxy = true;
+        } catch(e) {
+          console.warn('Proxy returned non-JSON:', proxyText.slice(0, 200));
+        }
+      } else {
+        const errText = await proxyRes.text();
+        console.warn('Proxy error response:', proxyRes.status, errText.slice(0, 200));
+      }
+    } catch(proxyErr) {
+      console.warn('Proxy not available, trying direct:', proxyErr.message);
+    }
+
+    // Fallback: direct call (works locally if CORS not an issue, blocked in production)
+    if (!usedProxy) {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5-20251001',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+      const data = await res.json();
+      raw = data.content?.find(b => b.type === 'text')?.text || '';
+    }
+
+    const clean = raw.replace(/```json|```/g, '').trim();
     const intel = JSON.parse(clean);
+
+    // Cache to localStorage
+    try {
+      localStorage.setItem(intelCacheKey(), JSON.stringify({ intel, ts: Date.now() }));
+    } catch(e) {}
+
     renderIntelContent(el, destination, intel);
   } catch(e) {
     console.error('Trip Intel error:', e);
     el.innerHTML = `<div class="intel-error">
       <div style="font-size:1.5rem;margin-bottom:8px">⚠️</div>
-      Could not load Trip Intel.<br>
-      <button class="intel-refresh-btn" style="margin-top:12px" onclick="intelLoaded=false;renderTripIntel()">Try again</button>
+      Could not load Trip Intel. Check your connection.<br>
+      <button class="intel-refresh-btn" style="margin-top:12px"
+              onclick="intelLoaded=false;renderTripIntel(true)">Try again</button>
     </div>`;
   }
 }
@@ -1983,7 +2035,7 @@ function renderIntelContent(el, destination, d) {
   el.innerHTML = `
     <div class="intel-dest-header">
       <div class="intel-dest-name">${escapeHtml(destination)}</div>
-      <button class="intel-refresh-btn" onclick="intelLoaded=false;renderTripIntel()">↻ Refresh</button>
+      <button class="intel-refresh-btn" onclick="intelLoaded=false;renderTripIntel(true)">↻ Refresh</button>
     </div>
 
     ${d.esim?.length ? `
